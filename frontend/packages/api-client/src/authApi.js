@@ -1,0 +1,66 @@
+import axiosClient from './axiosClient.js';
+
+const TOKEN_KEY = 'smartad_token';
+const IDENTITY_KEY = 'smartad_identity';
+const ROLE_KEY = 'smartad_role';
+
+export async function login({ username, password }) {
+  return axiosClient.post('/auth/login', { username, password });
+}
+
+export async function register({ username, email, password, displayName }) {
+  return axiosClient.post('/auth/register', {
+    username,
+    email,
+    password,
+    displayName,
+  });
+}
+
+export async function adminLogin({ username, password }) {
+  return axiosClient.post('/auth/admin/login', { username, password });
+}
+
+/**
+ * Persists an auth response ({ token, tokenType, user | admin }) to
+ * localStorage so subsequent requests are authenticated.
+ * @param {{token: string, tokenType?: string, user?: object, admin?: object}} authResponse
+ * @param {'USER'|'ADMIN'} role
+ */
+export function setSession(authResponse, role) {
+  if (!authResponse) return;
+  const identity =
+    role === 'ADMIN' ? authResponse.admin : authResponse.user;
+
+  localStorage.setItem(TOKEN_KEY, authResponse.token);
+  localStorage.setItem(IDENTITY_KEY, JSON.stringify(identity || null));
+  localStorage.setItem(ROLE_KEY, role);
+}
+
+export function getIdentity() {
+  const raw = localStorage.getItem(IDENTITY_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+export function getRole() {
+  return localStorage.getItem(ROLE_KEY);
+}
+
+export function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function logout() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(IDENTITY_KEY);
+  localStorage.removeItem(ROLE_KEY);
+}
+
+export function isAuthenticated() {
+  return Boolean(getToken());
+}

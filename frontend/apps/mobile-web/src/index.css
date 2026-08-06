@@ -1,0 +1,36 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-slate-950 text-slate-100 antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+}
+
+button {
+  touch-action: manipulation;
+}
+
+@layer components {
+  .input-field {
+    @apply w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3.5 text-base text-white placeholder-slate-500 outline-none focus:border-emerald-500;
+  }
+
+  .btn-primary {
+    @apply w-full rounded-xl bg-emerald-500 py-3.5 text-base font-bold text-slate-950 transition active:scale-[0.99] active:bg-emerald-600 disabled:opacity-50;
+  }
+
+  .dpad-btn {
+    @apply flex h-16 w-16 select-none items-center justify-center rounded-2xl bg-slate-800 text-2xl text-white active:bg-slate-700;
+    touch-action: manipulation;
+  }
+}

@@ -1,0 +1,125 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: smartad-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-smartad}
+      MYSQL_USER: ${MYSQL_USER:-smartad}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-smartadpass}
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootpassword}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - smartad-net
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: smartad-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - smartad-net
+
+  minio:
+    image: minio/minio:latest
+    container_name: smartad-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - smartad-net
+
+  minio-init:
+    image: minio/mc:latest
+    container_name: smartad-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin123};
+      mc mb --ignore-existing local/${MINIO_BUCKET:-ads};
+      mc anonymous set download local/${MINIO_BUCKET:-ads};
+      exit 0;
+      "
+    networks:
+      - smartad-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smartad-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-smartad}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-smartad}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-smartadpass}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      AWS_S3_ENDPOINT: ${AWS_S3_ENDPOINT:-http://minio:9000}
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER:-minioadmin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_S3_BUCKET: ${MINIO_BUCKET:-ads}
+      JWT_SECRET: ${JWT_SECRET:-change-this-super-secret-key-for-jwt-signing-min-256-bits-long}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
+      SERVER_PORT: ${SERVER_PORT:-8080}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174,http://localhost:5175}
+      APP_FRONTEND_MOBILE_URL: ${APP_FRONTEND_MOBILE_URL:-http://localhost:5174}
+      # JDWP remote-debug agent — lets VS Code's "Backend: Attach to Docker" launch
+      # config attach a debugger to the containerized backend. suspend=n so normal
+      # startup is never blocked when no debugger is attached.
+      JAVA_TOOL_OPTIONS: -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005
+    ports:
+      - "${SERVER_PORT:-8080}:8080"
+      - "5005:5005"
+    networks:
+      - smartad-net
+
+networks:
+  smartad-net:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  redis-data:
+  minio-data:

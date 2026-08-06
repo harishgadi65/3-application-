@@ -1,0 +1,61 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: smart-ad-backend
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/smartad?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC}
+    username: ${SPRING_DATASOURCE_USERNAME:root}
+    password: ${SPRING_DATASOURCE_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+    show-sql: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 50MB
+      max-request-size: 55MB
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:this-is-a-local-development-only-jwt-secret-change-me}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174,http://localhost:5175}
+
+  frontend:
+    mobile-url: ${APP_FRONTEND_MOBILE_URL:http://localhost:5174}
+
+  aws:
+    region: ${AWS_REGION:us-east-1}
+    access-key-id: ${AWS_ACCESS_KEY_ID:minioadmin}
+    secret-access-key: ${AWS_SECRET_ACCESS_KEY:minioadmin}
+    s3:
+      endpoint: ${AWS_S3_ENDPOINT:http://localhost:9000}
+      bucket: ${AWS_S3_BUCKET:ads}
+
+logging:
+  level:
+    root: INFO
+    com.smartad: DEBUG

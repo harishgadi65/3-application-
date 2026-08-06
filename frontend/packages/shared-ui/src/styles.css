@@ -1,0 +1,131 @@
+/* @smartad/shared-ui - plain CSS, no framework dependency */
+
+.sad-spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+}
+
+.sad-spinner {
+  display: inline-block;
+  border-radius: 50%;
+  border: 3px solid rgba(0, 0, 0, 0.15);
+  border-top-color: #4f46e5;
+  animation: sad-spin 0.8s linear infinite;
+}
+
+.sad-spinner-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+@keyframes sad-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sad-error-boundary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+  text-align: center;
+  color: #111827;
+}
+
+.sad-error-boundary-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.sad-error-boundary-message {
+  margin: 0;
+  color: #6b7280;
+}
+
+.sad-error-boundary-button {
+  padding: 8px 20px;
+  border-radius: 6px;
+  border: none;
+  background-color: #4f46e5;
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.sad-error-boundary-button:hover {
+  background-color: #4338ca;
+}
+
+.sad-toast-stack {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9999;
+  max-width: 360px;
+}
+
+.sad-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  color: #fff;
+  font-size: 0.875rem;
+  cursor: pointer;
+  animation: sad-toast-in 0.2s ease-out;
+}
+
+@keyframes sad-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sad-toast-info {
+  background-color: #374151;
+}
+
+.sad-toast-success {
+  background-color: #16a34a;
+}
+
+.sad-toast-error {
+  background-color: #dc2626;
+}
+
+.sad-toast-message {
+  flex: 1;
+}
+
+.sad-toast-close {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.sad-toast-close:hover {
+  opacity: 1;
+}

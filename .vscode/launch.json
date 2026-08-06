@@ -1,0 +1,57 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Backend: Launch (Java, local mvn/JDK)",
+      "request": "launch",
+      "mainClass": "com.smartad.SmartAdApplication",
+      "projectName": "smart-ad-backend",
+      "cwd": "${workspaceFolder}/backend",
+      "envFile": "${workspaceFolder}/backend/.env",
+      "preLaunchTask": "Setup: copy .env files"
+    },
+    {
+      "type": "java",
+      "name": "Backend: Attach to Docker (port 5005)",
+      "request": "attach",
+      "hostName": "localhost",
+      "port": 5005
+    },
+    {
+      "type": "pwa-chrome",
+      "request": "launch",
+      "name": "Debug TV Display (Chrome)",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/frontend/apps/tv-display/src",
+      "preLaunchTask": "Frontend: TV Display dev"
+    },
+    {
+      "type": "pwa-chrome",
+      "request": "launch",
+      "name": "Debug Mobile Web (Chrome)",
+      "url": "http://localhost:5174",
+      "webRoot": "${workspaceFolder}/frontend/apps/mobile-web/src",
+      "preLaunchTask": "Frontend: Mobile Web dev"
+    },
+    {
+      "type": "pwa-chrome",
+      "request": "launch",
+      "name": "Debug Admin Dashboard (Chrome)",
+      "url": "http://localhost:5175",
+      "webRoot": "${workspaceFolder}/frontend/apps/admin-dashboard/src",
+      "preLaunchTask": "Frontend: Admin Dashboard dev"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug All Frontend Apps",
+      "configurations": [
+        "Debug TV Display (Chrome)",
+        "Debug Mobile Web (Chrome)",
+        "Debug Admin Dashboard (Chrome)"
+      ],
+      "stopAll": true
+    }
+  ]
+}

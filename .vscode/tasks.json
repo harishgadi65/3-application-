@@ -1,0 +1,89 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Setup: copy .env files",
+      "type": "shell",
+      "command": "node scripts/setup-env.mjs",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Frontend: install deps (pnpm install)",
+      "type": "shell",
+      "command": "pnpm install",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Infra: docker compose up (mysql+redis+minio only)",
+      "type": "shell",
+      "command": "docker compose up -d mysql redis minio minio-init",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend: docker compose up (infra + backend)",
+      "type": "shell",
+      "command": "docker compose up --build",
+      "options": { "cwd": "${workspaceFolder}" },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "^ERROR (.*)$", "file": 1, "message": 1 },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Creating|Starting|Building",
+          "endsPattern": "Started SmartAdApplication|smartad-backend.*(Started|running)"
+        }
+      }
+    },
+    {
+      "label": "Backend: mvn spring-boot:run",
+      "type": "shell",
+      "command": "mvn spring-boot:run",
+      "options": { "cwd": "${workspaceFolder}/backend" },
+      "problemMatcher": [],
+      "detail": "Requires a local JDK 21 + Maven install. Not usable on a machine without a Java toolchain."
+    },
+    {
+      "label": "Docker: down",
+      "type": "shell",
+      "command": "docker compose down",
+      "options": { "cwd": "${workspaceFolder}" },
+      "problemMatcher": []
+    },
+    {
+      "label": "Frontend: TV Display dev",
+      "type": "shell",
+      "command": "pnpm --filter tv-display dev",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "^ERROR (.*)$", "file": 1, "message": 1 },
+        "background": { "activeOnStart": true, "beginsPattern": "VITE v", "endsPattern": "ready in \\d+ ms" }
+      }
+    },
+    {
+      "label": "Frontend: Mobile Web dev",
+      "type": "shell",
+      "command": "pnpm --filter mobile-web dev",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "^ERROR (.*)$", "file": 1, "message": 1 },
+        "background": { "activeOnStart": true, "beginsPattern": "VITE v", "endsPattern": "ready in \\d+ ms" }
+      }
+    },
+    {
+      "label": "Frontend: Admin Dashboard dev",
+      "type": "shell",
+      "command": "pnpm --filter admin-dashboard dev",
+      "options": { "cwd": "${workspaceFolder}/frontend" },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": { "regexp": "^ERROR (.*)$", "file": 1, "message": 1 },
+        "background": { "activeOnStart": true, "beginsPattern": "VITE v", "endsPattern": "ready in \\d+ ms" }
+      }
+    }
+  ]
+}

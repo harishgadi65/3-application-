@@ -1,0 +1,21 @@
+{
+  "name": "smart-ad-platform",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Smart Interactive Advertising & Gaming Platform - root dev scripts. See README.md.",
+  "scripts": {
+    "setup": "node scripts/setup-env.mjs",
+    "install:frontend": "pnpm --dir frontend install",
+    "dev:infra": "docker compose up -d mysql redis minio minio-init",
+    "dev:backend:docker": "docker compose up -d --build backend",
+    "dev:backend:local": "cd backend && mvn spring-boot:run",
+    "dev:frontend": "pnpm --dir frontend -r --parallel dev",
+    "dev": "docker compose up -d --build && npm run dev:frontend",
+    "stop": "docker compose down",
+    "logs:backend": "docker compose logs -f backend",
+    "build:frontend": "pnpm --dir frontend build"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

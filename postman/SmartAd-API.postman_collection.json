@@ -1,0 +1,381 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-4789-a0b1-smartad-api-collection",
+    "name": "SmartAd API",
+    "description": "REST API for the Smart Interactive Advertising & Gaming Platform. Import this alongside the \"SmartAd - Local\" environment. Run folders top-to-bottom (Auth -> Games -> Advertisements -> Sessions -> Leaderboard -> Players -> Admin) or use Collection Runner over the whole collection - later requests depend on variables captured by earlier ones via test scripts (adminToken, userToken, userId, sessionCode, adId). See postman/README.md for the one manual step (Upload Ad needs a local file selected by hand) and for how to test the WebSocket/STOMP side, which isn't part of this REST collection.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register Player",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Register succeeded', () => { pm.response.to.have.status(200); pm.expect(res.success).to.be.true; });",
+                  "if (res.success && res.data) {",
+                  "  pm.environment.set('userToken', res.data.token);",
+                  "  pm.environment.set('userId', String(res.data.user.id));",
+                  "  pm.environment.set('userDisplayName', res.data.user.displayName);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"player_{{$randomInt}}\",\n  \"email\": \"player_{{$randomInt}}@example.com\",\n  \"password\": \"password123\",\n  \"displayName\": \"Postman Player\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+            "description": "Public. Creates a player account and returns a JWT. Test script captures userToken/userId for later requests. Uses {{$randomInt}} so this request can be re-run without a duplicate-username conflict."
+          }
+        },
+        {
+          "name": "Login Player",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Login succeeded', () => { pm.response.to.have.status(200); pm.expect(res.success).to.be.true; });",
+                  "if (res.success && res.data) {",
+                  "  pm.environment.set('userToken', res.data.token);",
+                  "  pm.environment.set('userId', String(res.data.user.id));",
+                  "  pm.environment.set('userDisplayName', res.data.user.displayName);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{userDisplayName}}\",\n  \"password\": \"password123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+            "description": "Public. Alternative to Register for logging back in as a player you already created (edit the body's \"username\" to match, since Register uses a random one). Not needed if you just ran Register in this same session."
+          }
+        },
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Admin login succeeded', () => { pm.response.to.have.status(200); pm.expect(res.success).to.be.true; });",
+                  "if (res.success && res.data) {",
+                  "  pm.environment.set('adminToken', res.data.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/admin/login", "host": ["{{baseUrl}}"], "path": ["auth", "admin", "login"] },
+            "description": "Public. Logs in as the seeded demo admin (admin/admin123, see backend/src/main/resources/db/migration/V1__init_schema.sql). Captures adminToken for every ROLE_ADMIN request below."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Games",
+      "item": [
+        {
+          "name": "List Games",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/games", "host": ["{{baseUrl}}"], "path": ["games"] },
+            "description": "Public. Returns the pluggable game catalog (SNAKE, TAP_BLAST) sourced from GamePluginRegistry."
+          }
+        },
+        {
+          "name": "Get Game Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/games/{{gameType}}/config", "host": ["{{baseUrl}}"], "path": ["games", "{{gameType}}", "config"] },
+            "description": "Public. Game-specific config/rules (grid size + tick rate for SNAKE, launch-bar mechanics for TAP_BLAST). {{gameType}} defaults to SNAKE in the environment."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Advertisements",
+      "item": [
+        {
+          "name": "List Active Ads",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/ads", "host": ["{{baseUrl}}"], "path": ["ads"] },
+            "description": "Public. Returns active ads ordered by displayOrder. Should return 8 rows out of the box once V2__seed_demo_ads.sql has run."
+          }
+        },
+        {
+          "name": "Upload Ad (manual step: pick a file)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Ad uploaded', () => { pm.response.to.have.status(200); pm.expect(res.success).to.be.true; });",
+                  "if (res.success && res.data) { pm.environment.set('adId', String(res.data.id)); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "file", "type": "file", "src": [], "description": "MANUAL STEP: click 'Select Files' and pick any local image/video - Postman collections cannot embed a file reference portably." },
+                { "key": "title", "value": "Postman Test Ad", "type": "text" },
+                { "key": "mediaType", "value": "IMAGE", "type": "text" },
+                { "key": "position", "value": "TOP", "type": "text" },
+                { "key": "displayOrder", "value": "0", "type": "text" }
+              ]
+            },
+            "url": { "raw": "{{baseUrl}}/ads", "host": ["{{baseUrl}}"], "path": ["ads"] },
+            "description": "ROLE_ADMIN. The only request in this collection needing a manual step, since Postman collections can't embed an actual file. Requires MinIO to be reachable (docker compose up must include minio + minio-init)."
+          }
+        },
+        {
+          "name": "Update Ad",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
+            "method": "PUT",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Postman Test Ad (updated)\",\n  \"position\": \"BOTTOM\",\n  \"displayOrder\": 1,\n  \"isActive\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/ads/{{adId}}", "host": ["{{baseUrl}}"], "path": ["ads", "{{adId}}"] },
+            "description": "ROLE_ADMIN. Uses {{adId}} captured by Upload Ad. To exercise this against a seeded ad instead, set {{adId}} manually to an id from List Active Ads (1-8)."
+          }
+        },
+        {
+          "name": "Delete Ad",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/ads/{{adId}}", "host": ["{{baseUrl}}"], "path": ["ads", "{{adId}}"] },
+            "description": "ROLE_ADMIN. Deletes the ad created by Upload Ad. Not included in a full Runner pass by default logic - run manually if you want to clean up the test ad."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sessions",
+      "item": [
+        {
+          "name": "Create Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Session created', () => { pm.response.to.have.status(200); pm.expect(res.success).to.be.true; });",
+                  "if (res.success && res.data) { pm.environment.set('sessionCode', res.data.sessionCode); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [ { "key": "Content-Type", "value": "application/json" } ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"gameType\": \"{{gameType}}\",\n  \"maxPlayers\": 8,\n  \"gameDurationSeconds\": 120\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/sessions", "host": ["{{baseUrl}}"], "path": ["sessions"] },
+            "description": "ROLE_ADMIN. Creates a new session in WAITING status and captures {{sessionCode}}. adminId is resolved server-side from the JWT, not from this body."
+          }
+        },
+        {
+          "name": "Get Session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/sessions/{{sessionCode}}", "host": ["{{baseUrl}}"], "path": ["sessions", "{{sessionCode}}"] },
+            "description": "Requires a valid JWT (either role). Uses {{sessionCode}} from Create Session."
+          }
+        },
+        {
+          "name": "List Active Sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/sessions/active", "host": ["{{baseUrl}}"], "path": ["sessions", "active"] },
+            "description": "Requires a valid JWT. Sessions currently WAITING/COUNTDOWN/PLAYING."
+          }
+        },
+        {
+          "name": "Get Session QR Code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/sessions/{{sessionCode}}/qr", "host": ["{{baseUrl}}"], "path": ["sessions", "{{sessionCode}}", "qr"] },
+            "description": "Public. Returns image/png bytes - use Postman's response \"Preview\" tab to see the actual QR code. Encodes a join URL pointing at APP_FRONTEND_MOBILE_URL."
+          }
+        },
+        {
+          "name": "Join Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Joined session', () => { pm.response.to.have.status(200); pm.expect(res.success).to.be.true; });",
+                  "// NOTE: this response's data.id is the PlayerSession row id, NOT the same",
+                  "// value the game engine uses to key per-player WebSocket topics",
+                  "// (/topic/session/{code}/player/{playerId}/...) or leaderboard entries.",
+                  "// Both of those key \"playerId\" on the account's User.id, which is",
+                  "// already captured in {{userId}} from Register/Login above. Use",
+                  "// {{userId}} - not this response's data.id - for any WebSocket testing."
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{userToken}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/sessions/{{sessionCode}}/join", "host": ["{{baseUrl}}"], "path": ["sessions", "{{sessionCode}}", "join"] },
+            "description": "ROLE_USER. Joins the session created above as the player registered/logged in above. See the test script note about playerId vs userId - this matters if you go on to test WebSocket topics manually."
+          }
+        },
+        {
+          "name": "List Players",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/sessions/{{sessionCode}}/players", "host": ["{{baseUrl}}"], "path": ["sessions", "{{sessionCode}}", "players"] },
+            "description": "Requires a valid JWT."
+          }
+        },
+        {
+          "name": "Start Session",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/sessions/{{sessionCode}}/start", "host": ["{{baseUrl}}"], "path": ["sessions", "{{sessionCode}}", "start"] },
+            "description": "ROLE_ADMIN. Requires at least one joined player. Kicks off the 5s countdown then PLAYING - actual gameplay only happens over WebSocket, not REST, so this collection can't play the game itself, only start/end it."
+          }
+        },
+        {
+          "name": "End Session",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/sessions/{{sessionCode}}/end", "host": ["{{baseUrl}}"], "path": ["sessions", "{{sessionCode}}", "end"] },
+            "description": "ROLE_ADMIN. Force-ends the game, computes a winner, and persists GameHistory. Safe to call even seconds after Start Session for a quick smoke test."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Leaderboard",
+      "item": [
+        {
+          "name": "Get Live Leaderboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/sessions/{{sessionCode}}/leaderboard", "host": ["{{baseUrl}}"], "path": ["sessions", "{{sessionCode}}", "leaderboard"] },
+            "description": "Requires a valid JWT. Backed by Redis, live during PLAYING."
+          }
+        },
+        {
+          "name": "Get Results",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/sessions/{{sessionCode}}/results", "host": ["{{baseUrl}}"], "path": ["sessions", "{{sessionCode}}", "results"] },
+            "description": "Requires a valid JWT. Only meaningful after End Session / FINISHED status - reads from MySQL (GameHistory + PlayerSession), not Redis."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Players",
+      "item": [
+        {
+          "name": "Get My History",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{userToken}}", "type": "string" } ] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/players/me/history", "host": ["{{baseUrl}}"], "path": ["players", "me", "history"] },
+            "description": "ROLE_USER. The current player's past sessions/results."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "List All Sessions",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/admin/sessions", "host": ["{{baseUrl}}"], "path": ["admin", "sessions"] },
+            "description": "ROLE_ADMIN. Unlike GET /sessions/active, returns sessions of ANY status, including FINISHED/CANCELLED."
+          }
+        },
+        {
+          "name": "Get Admin Session Detail",
+          "request": {
+            "auth": { "type": "bearer", "bearer": [ { "key": "token", "value": "{{adminToken}}", "type": "string" } ] },
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/admin/sessions/{{sessionCode}}", "host": ["{{baseUrl}}"], "path": ["admin", "sessions", "{{sessionCode}}"] },
+            "description": "ROLE_ADMIN."
+          }
+        }
+      ]
+    }
+  ]
+}

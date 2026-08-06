@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "vscjava.vscode-java-pack",
+    "vscjava.vscode-java-debug",
+    "vscjava.vscode-java-dependency",
+    "dbaeumer.vscode-eslint"
+  ]
+}
