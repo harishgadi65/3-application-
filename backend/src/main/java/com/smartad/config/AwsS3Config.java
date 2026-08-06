@@ -33,10 +33,15 @@ public class AwsS3Config {
 
     @Bean
     public S3Client s3Client() {
-        S3Client.Builder builder = S3Client.builder()
+//        S3Client.Builder builder = S3Client.builder()
+//                .region(Region.of(region))
+//                .serviceConfiguration(S3Configuration.builder()
+//                        .pathStyleAccessEnabled(true) // required for MinIO
+//                        .build());
+        var builder = S3Client.builder()
                 .region(Region.of(region))
                 .serviceConfiguration(S3Configuration.builder()
-                        .pathStyleAccessEnabled(true) // required for MinIO
+                        .pathStyleAccessEnabled(true)
                         .build());
 
         if (accessKeyId != null && !accessKeyId.isBlank()) {
