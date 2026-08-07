@@ -2,6 +2,7 @@ package com.smartad.controller;
 
 import com.google.zxing.WriterException;
 import com.smartad.dto.request.CreateSessionRequest;
+import com.smartad.dto.request.SelectGameRequest;
 import com.smartad.dto.response.ApiResponse;
 import com.smartad.dto.response.PlayerResponse;
 import com.smartad.dto.response.SessionResponse;
@@ -51,6 +52,23 @@ public class SessionController {
     public ResponseEntity<ApiResponse<SessionResponse>> startSession(@PathVariable String code) {
         SessionResponse response = sessionService.startSession(code);
         return ResponseEntity.ok(ApiResponse.success("Session starting", response));
+    }
+
+    @PostMapping("/{code}/select-game")
+    public ResponseEntity<ApiResponse<SessionResponse>> selectGame(
+            @PathVariable String code,
+            @Valid @RequestBody SelectGameRequest request,
+            @AuthenticationPrincipal Long userId) {
+        SessionResponse response = sessionService.selectGameAndStart(code, userId, request.getGameType());
+        return ResponseEntity.ok(ApiResponse.success("Game selected", response));
+    }
+
+    @PostMapping("/{code}/replay")
+    public ResponseEntity<ApiResponse<SessionResponse>> replay(
+            @PathVariable String code,
+            @AuthenticationPrincipal Long userId) {
+        SessionResponse response = sessionService.replaySession(code, userId);
+        return ResponseEntity.ok(ApiResponse.success("Game restarting", response));
     }
 
     @PostMapping("/{code}/end")

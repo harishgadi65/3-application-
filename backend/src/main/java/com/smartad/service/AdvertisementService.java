@@ -43,6 +43,12 @@ public class AdvertisementService {
                 .toList();
     }
 
+    public List<AdvertisementResponse> listAll() {
+        return advertisementRepository.findAllByOrderByDisplayOrderAsc().stream()
+                .map(advertisementMapper::toResponse)
+                .toList();
+    }
+
     @Transactional
     public AdvertisementResponse update(Long id, String title, String position, Integer displayOrder, Boolean isActive) {
         Advertisement ad = advertisementRepository.findById(id)

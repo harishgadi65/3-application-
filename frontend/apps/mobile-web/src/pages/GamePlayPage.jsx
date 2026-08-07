@@ -8,6 +8,8 @@ import ScoreDisplay from '../components/ScoreDisplay.jsx';
 import RankBadge from '../components/RankBadge.jsx';
 import GameController from '../games/GameController.jsx';
 
+const normalizePhase = (value) => value === 'RUNNING' ? 'PLAYING' : value === 'ENDED' ? 'FINISHED' : value;
+
 export default function GamePlayPage() {
   const { code } = useParams();
   const location = useLocation();
@@ -21,6 +23,16 @@ export default function GamePlayPage() {
   const [gameUpdate, setGameUpdate] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
   const [gameEvent, setGameEvent] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    sessionApi.getSession(code).then((data) => {
+      if (cancelled) return;
+      if (data?.phase) setPhase(normalizePhase(data.phase));
+      if (data?.gameType) setGameType(data.gameType);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [code]);
 
   // Recover the player id if this page was opened directly (e.g. a
   // refresh) without route state from JoinGamePage. joinSession is
@@ -45,7 +57,7 @@ export default function GamePlayPage() {
   useSubscription(
     `/topic/session/${code}/state`,
     useCallback((msg) => {
-      setPhase(msg.phase);
+      setPhase(normalizePhase(msg.phase));
       if (msg.gameType) setGameType(msg.gameType);
     }, []),
     [code],

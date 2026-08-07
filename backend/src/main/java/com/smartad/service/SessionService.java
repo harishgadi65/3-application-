@@ -18,6 +18,7 @@ import com.smartad.game.GamePluginRegistry;
 import com.smartad.mapper.SessionMapper;
 import com.smartad.repository.AdminRepository;
 import com.smartad.repository.GameSessionRepository;
+import com.smartad.repository.GameHistoryRepository;
 import com.smartad.repository.PlayerSessionRepository;
 import com.smartad.repository.UserRepository;
 import com.smartad.util.Constants;
@@ -43,6 +44,7 @@ import java.util.Optional;
 public class SessionService {
 
     private final GameSessionRepository gameSessionRepository;
+    private final GameHistoryRepository gameHistoryRepository;
     private final PlayerSessionRepository playerSessionRepository;
     private final AdminRepository adminRepository;
     private final UserRepository userRepository;
@@ -126,6 +128,56 @@ public class SessionService {
         gameEngineService.beginCountdownAndStart(code);
 
         return sessionMapper.toSessionResponse(session, (int) playerCount);
+    }
+
+    @Transactional
+    public SessionResponse selectGameAndStart(String code, Long userId, com.smartad.enums.GameType gameType) {
+        GameSession session = findSessionOrThrow(code);
+        requireJoinedPlayer(session, userId);
+        if (session.getStatus() != SessionStatus.WAITING) {
+            throw new InvalidGameStateException("Game selection is only available while the session is waiting");
+        }
+
+        GamePlugin plugin = gamePluginRegistry.getPluginOrThrow(gameType.name());
+        session.setGameType(gameType);
+        session.setGameDurationSeconds(plugin.getDefaultDuration());
+        session.setStatus(SessionStatus.COUNTDOWN);
+        session = gameSessionRepository.save(session);
+        redisSessionStateService.setStateFields(code, Map.of(
+                "phase", "COUNTDOWN",
+                "gameType", gameType.name()));
+        gameEngineService.beginCountdownAndStart(code);
+        return sessionMapper.toSessionResponse(session, (int) playerSessionRepository.countBySession(session));
+    }
+
+    @Transactional
+    public SessionResponse replaySession(String code, Long userId) {
+        GameSession session = findSessionOrThrow(code);
+        requireJoinedPlayer(session, userId);
+        if (session.getStatus() != SessionStatus.FINISHED) {
+            throw new InvalidGameStateException("Only a finished game can be replayed");
+        }
+
+        gameHistoryRepository.deleteBySession(session);
+        for (PlayerSession player : playerSessionRepository.findBySession(session)) {
+            player.setStatus(PlayerStatus.JOINED);
+            player.setFinalScore(null);
+            player.setFinalRank(null);
+            playerSessionRepository.save(player);
+            String playerId = player.getUser().getId().toString();
+            redisSessionStateService.setScore(code, playerId, 0);
+            redisSessionStateService.setPlayerData(code, playerId, "{\"score\":0,\"status\":\"JOINED\"}");
+        }
+
+        session.setStartedAt(null);
+        session.setEndedAt(null);
+        session.setStatus(SessionStatus.COUNTDOWN);
+        session = gameSessionRepository.save(session);
+        redisSessionStateService.setStateFields(code, Map.of(
+                "phase", "COUNTDOWN",
+                "gameType", session.getGameType().name()));
+        gameEngineService.beginCountdownAndStart(code);
+        return sessionMapper.toSessionResponse(session, (int) playerSessionRepository.countBySession(session));
     }
 
     @Transactional
@@ -245,6 +297,13 @@ public class SessionService {
     private GameSession findSessionOrThrow(String code) {
         return gameSessionRepository.findBySessionCode(code)
                 .orElseThrow(() -> new ResourceNotFoundException("Session not found: " + code));
+    }
+
+    private void requireJoinedPlayer(GameSession session, Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+        playerSessionRepository.findBySessionAndUser(session, user)
+                .orElseThrow(() -> new InvalidGameStateException("Join the session before selecting or replaying a game"));
     }
 
     private String generateUniqueCode() {

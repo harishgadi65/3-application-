@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { sessionApi } from '@smartad/api-client';
 import { useStomp, useSubscription } from '@smartad/websocket';
 import { LoadingSpinner } from '@smartad/shared-ui';
@@ -8,10 +8,12 @@ import WaitingRoom from '../components/WaitingRoom.jsx';
 import Countdown from '../components/Countdown.jsx';
 import GameArea from '../components/GameArea.jsx';
 import WinnerScreen from '../components/WinnerScreen.jsx';
+import StartupDisplay from '../components/StartupDisplay.jsx';
 import useAdRotation from '../hooks/useAdRotation.js';
 
 const FLASH_LIFETIME_MS = 1000;
 const GOOD_RESULT_VALUES = ['GOOD', 'SUCCESS', 'POSITIVE', 'HIT', 'PERFECT'];
+const normalizePhase = (value) => value === 'RUNNING' ? 'PLAYING' : value === 'ENDED' ? 'FINISHED' : value;
 
 /**
  * The main TV view at /display/:sessionCode. Fetches the session once on
@@ -21,8 +23,9 @@ const GOOD_RESULT_VALUES = ['GOOD', 'SUCCESS', 'POSITIVE', 'HIT', 'PERFECT'];
  */
 export default function TVDisplayPage() {
   const { sessionCode: code } = useParams();
+  const navigate = useNavigate();
   const { client, connected } = useStomp();
-  const { currentAdByPosition } = useAdRotation();
+  const { currentAdByPosition, startupAd } = useAdRotation();
 
   const [session, setSession] = useState(null);
   const [loadError, setLoadError] = useState(null);
@@ -48,7 +51,7 @@ export default function TVDisplayPage() {
       .then((data) => {
         if (cancelled) return;
         setSession(data);
-        if (data?.phase) setPhase(data.phase);
+        if (data?.phase) setPhase(normalizePhase(data.phase));
         if (data?.gameType) setGameType(data.gameType);
       })
       .catch((err) => {
@@ -80,7 +83,7 @@ export default function TVDisplayPage() {
   useSubscription(
     `/topic/session/${code}/state`,
     (msg) => {
-      if (msg?.phase) setPhase(msg.phase);
+      if (msg?.phase) setPhase(normalizePhase(msg.phase));
       if (msg?.gameType) setGameType(msg.gameType);
     },
     [code]
@@ -210,11 +213,17 @@ export default function TVDisplayPage() {
         winner={gameEnd?.winner}
         rankings={gameEnd?.rankings || rankings}
         stats={gameEnd?.stats}
+        onComplete={() => navigate('/', { replace: true })}
       />
     );
   } else {
     // CREATED / WAITING / CANCELLED all render as the waiting room.
     content = <WaitingRoom code={code} gameType={gameTypeLabel} players={players} />;
+  }
+
+  const isWaiting = !loadError && session && !['COUNTDOWN', 'PLAYING', 'FINISHED'].includes(phase);
+  if (isWaiting && players.length === 0) {
+    return <StartupDisplay ad={startupAd} code={code} gameType={gameTypeLabel} />;
   }
 
   return <ScreenLayout currentAdByPosition={currentAdByPosition}>{content}</ScreenLayout>;

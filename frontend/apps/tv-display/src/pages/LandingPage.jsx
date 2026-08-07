@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { adApi } from '@smartad/api-client';
+import { useNavigate } from 'react-router-dom';
+import { adApi, sessionApi } from '@smartad/api-client';
 
 const POLL_INTERVAL_MS = 30000;
 const ROTATE_INTERVAL_MS = 8000;
@@ -9,6 +10,7 @@ const ROTATE_INTERVAL_MS = 8000;
  * a full-screen rotating ad reel behind it.
  */
 export default function LandingPage() {
+  const navigate = useNavigate();
   const [ads, setAds] = useState([]);
   const [index, setIndex] = useState(0);
 
@@ -39,6 +41,26 @@ export default function LandingPage() {
     }, ROTATE_INTERVAL_MS);
     return () => clearInterval(timer);
   }, [ads]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const findSession = async () => {
+      try {
+        const sessions = await sessionApi.listActiveSessions();
+        const session = Array.isArray(sessions) ? sessions[0] : null;
+        const code = session?.code || session?.sessionCode;
+        if (!cancelled && code) navigate(`/display/${code}`, { replace: true });
+      } catch (err) {
+        console.error('LandingPage: failed to find an active session', err);
+      }
+    };
+    findSession();
+    const timer = setInterval(findSession, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [navigate]);
 
   const ad = ads.length > 0 ? ads[index % ads.length] : null;
 

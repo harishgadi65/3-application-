@@ -43,6 +43,7 @@ export const gameApi = {
 export const adApi = {
   uploadAd: apiClient.uploadAd,
   listAds: apiClient.listAds,
+  listAllAds: apiClient.listAllAds,
   deleteAd: apiClient.deleteAd,
   updateAd: apiClient.updateAd,
 };

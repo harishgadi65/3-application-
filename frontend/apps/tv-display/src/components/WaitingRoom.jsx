@@ -1,54 +1,45 @@
-import QRCodeDisplay from './QRCodeDisplay.jsx';
+const GAMES = [
+  { type: 'SNAKE', label: 'Snake', icon: '🐍' },
+  { type: 'TAP_BLAST', label: 'Tap Blast', icon: '🚀' },
+];
 
-const GAME_LABELS = {
-  SNAKE: 'Snake Battle',
-  TAP_BLAST: 'Tap Blast',
-};
-
-/**
- * WAITING phase: QR to join + live player roster + game type, alongside the
- * persistent ad zones rendered by <ScreenLayout>.
- */
+/** Center panel shown inside the four-sided ad frame after a player joins. */
 export default function WaitingRoom({ code, gameType, players = [] }) {
-  const label = GAME_LABELS[gameType] || gameType || 'Game';
-
   return (
-    <div className="w-full h-full flex items-center justify-center gap-20 px-16">
-      <div className="flex flex-col items-center gap-8 animate-fade-in">
-        <QRCodeDisplay code={code} />
-        <p className="text-3xl text-slate-300 font-semibold">
-          Scan with your phone camera to join
+    <div className="flex h-full w-full items-center justify-center bg-slate-50 p-[clamp(10px,2vw,36px)] text-slate-900">
+      <div className="flex h-full w-full max-w-[1100px] flex-col items-center justify-center overflow-hidden rounded-[clamp(14px,1.5vw,24px)] border-2 border-lime-500 bg-white px-[clamp(18px,3vw,48px)] py-[clamp(12px,2vh,28px)] shadow-2xl">
+        <p className="text-[clamp(10px,1vw,18px)] font-bold uppercase tracking-[0.3em] text-slate-400">
+          Game session {code}
         </p>
-      </div>
+        <h1 className="mt-[clamp(4px,1vh,12px)] text-[clamp(24px,3vw,48px)] font-black">Get ready to play</h1>
 
-      <div className="flex flex-col gap-6 min-w-[30rem] max-w-[34rem] h-[70vh]">
-        <div>
-          <p className="text-2xl uppercase tracking-[0.3em] text-indigo-400 font-bold">
-            Up next
-          </p>
-          <h2 className="text-7xl font-black leading-tight">{label}</h2>
+        <div className="mt-[clamp(12px,2.5vh,36px)] grid min-h-0 w-full max-w-[720px] flex-1 grid-cols-2 gap-[clamp(12px,2vw,36px)]">
+          {GAMES.map((game) => {
+            const selected = game.type === gameType;
+            return (
+              <div
+                key={game.type}
+                className={`flex min-h-0 flex-col items-center justify-center rounded-[clamp(12px,1.5vw,24px)] border-[clamp(2px,0.25vw,4px)] transition ${
+                  selected
+                    ? 'border-lime-500 bg-lime-50 shadow-[0_0_45px_rgba(132,204,22,0.28)]'
+                    : 'border-slate-200 bg-white opacity-55'
+                }`}
+              >
+                <span className="text-[clamp(44px,6vh,80px)]" role="img" aria-label={game.label}>{game.icon}</span>
+                <p className="mt-[clamp(8px,1.5vh,20px)] text-[clamp(16px,1.7vw,28px)] font-black uppercase tracking-wider">{game.label}</p>
+                {selected && (
+                  <span className="mt-[clamp(6px,1vh,14px)] rounded-full bg-lime-500 px-4 py-1.5 text-[clamp(9px,0.7vw,13px)] font-black uppercase tracking-widest text-white">
+                    Selected
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-3xl p-6 flex-1 backdrop-blur overflow-hidden flex flex-col">
-          <p className="text-2xl font-bold text-slate-300 mb-4 shrink-0">
-            Players joined ({players.length})
-          </p>
-          {players.length === 0 ? (
-            <p className="text-2xl text-slate-500">Waiting for players to join...</p>
-          ) : (
-            <ul className="grid grid-cols-2 gap-3 overflow-hidden">
-              {players.map((player) => (
-                <li
-                  key={player.id}
-                  className="bg-white/10 rounded-xl px-4 py-3 text-3xl font-bold truncate animate-fade-in"
-                  title={player.displayName}
-                >
-                  {player.displayName}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        <p className="mt-[clamp(8px,1.5vh,20px)] text-[clamp(12px,1.2vw,20px)] font-semibold text-slate-500">
+          {players.length} player{players.length === 1 ? '' : 's'} joined · Waiting for the host to start
+        </p>
       </div>
     </div>
   );

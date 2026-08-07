@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { adApi } from '@smartad/api-client';
 
-const POSITIONS = ['TOP', 'BOTTOM', 'LEFT', 'RIGHT'];
+const POSITIONS = ['STARTUP', 'TOP', 'BOTTOM', 'LEFT', 'RIGHT'];
 const ROTATION_INTERVAL_MS = 8000;
 const REFRESH_INTERVAL_MS = 30000;
 
@@ -70,5 +70,13 @@ export default function useAdRotation() {
     return acc;
   }, {});
 
-  return { adsByPosition, currentAdByPosition };
+  const startupAd =
+    currentAdByPosition.STARTUP ||
+    currentAdByPosition.TOP ||
+    currentAdByPosition.BOTTOM ||
+    currentAdByPosition.LEFT ||
+    currentAdByPosition.RIGHT ||
+    null;
+
+  return { adsByPosition, currentAdByPosition, startupAd };
 }

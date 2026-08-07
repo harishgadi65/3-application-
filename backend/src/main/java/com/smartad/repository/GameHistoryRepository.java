@@ -9,4 +9,6 @@ import java.util.Optional;
 public interface GameHistoryRepository extends JpaRepository<GameHistory, Long> {
 
     Optional<GameHistory> findBySession(GameSession session);
+
+    void deleteBySession(GameSession session);
 }

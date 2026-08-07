@@ -7,7 +7,7 @@ import AdZone from './AdZone.jsx';
  */
 export default function ScreenLayout({ currentAdByPosition = {}, children }) {
   return (
-    <div className="w-screen h-screen bg-black grid grid-rows-[10vh_1fr_10vh] grid-cols-[13vw_1fr_13vw]">
+    <div className="h-screen w-screen overflow-hidden bg-black grid grid-rows-[clamp(64px,10vh,120px)_minmax(0,1fr)_clamp(64px,10vh,120px)] grid-cols-[clamp(110px,13vw,250px)_minmax(0,1fr)_clamp(110px,13vw,250px)]">
       <div className="col-[1/4] row-[1] min-h-0 border-b border-white/5">
         <AdZone position="TOP" ad={currentAdByPosition.TOP} />
       </div>

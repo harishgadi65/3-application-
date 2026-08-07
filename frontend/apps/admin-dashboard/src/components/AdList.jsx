@@ -2,7 +2,14 @@ import { useState } from 'react';
 import { adApi } from '../lib/api.js';
 import { useToast } from '@smartad/shared-ui';
 
-const POSITIONS = ['TOP', 'BOTTOM', 'LEFT', 'RIGHT'];
+const POSITIONS = ['STARTUP', 'TOP', 'BOTTOM', 'LEFT', 'RIGHT'];
+const POSITION_LABELS = {
+  STARTUP: 'Starting screen',
+  TOP: 'Top edge',
+  BOTTOM: 'Bottom edge',
+  LEFT: 'Left edge',
+  RIGHT: 'Right edge',
+};
 
 export default function AdList({ ads = [], onChanged }) {
   if (ads.length === 0) {
@@ -82,7 +89,7 @@ function AdCard({ ad, onChanged }) {
         <p className="truncate font-medium text-slate-900">{ad.title}</p>
         <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
           <span className="badge-slate">{ad.mediaType}</span>
-          <span className="badge-indigo">{ad.position}</span>
+          <span className="badge-indigo">{POSITION_LABELS[ad.position] || ad.position}</span>
           {ad.isActive === false && <span className="badge-rose">Inactive</span>}
         </div>
       </div>
@@ -97,7 +104,7 @@ function AdCard({ ad, onChanged }) {
             >
               {POSITIONS.map((p) => (
                 <option key={p} value={p}>
-                  {p}
+                  {POSITION_LABELS[p]}
                 </option>
               ))}
             </select>

@@ -12,7 +12,7 @@ export default function AdvertisementsPage() {
   const loadAds = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await adApi.listAds();
+      const list = await adApi.listAllAds();
       setAds(list || []);
       setError('');
     } catch (err) {
@@ -31,7 +31,7 @@ export default function AdvertisementsPage() {
       <div>
         <h1 className="page-title">Advertisements</h1>
         <p className="text-sm text-slate-500">
-          Upload creative assets and manage where and how often they appear.
+          Control the single starting-screen ad and the four edge ads shown around the game.
         </p>
       </div>
 

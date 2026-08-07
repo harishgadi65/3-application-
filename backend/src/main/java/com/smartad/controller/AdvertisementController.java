@@ -44,6 +44,11 @@ public class AdvertisementController {
         return ResponseEntity.ok(ApiResponse.success(advertisementService.listActive()));
     }
 
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<List<AdvertisementResponse>>> listAll() {
+        return ResponseEntity.ok(ApiResponse.success(advertisementService.listAll()));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<AdvertisementResponse>> update(
             @PathVariable Long id,

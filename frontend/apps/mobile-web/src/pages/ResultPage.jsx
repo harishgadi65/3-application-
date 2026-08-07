@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { sessionApi, authApi } from '@smartad/api-client';
-import { LoadingSpinner } from '@smartad/shared-ui';
+import { LoadingSpinner, useToast } from '@smartad/shared-ui';
 import WinnerBanner from '../components/WinnerBanner.jsx';
 import RankBadge from '../components/RankBadge.jsx';
 import RewardCard from '../components/RewardCard.jsx';
@@ -10,11 +10,40 @@ export default function ResultPage() {
   const { code } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [results, setResults] = useState(location.state?.results ?? null);
   const [loading, setLoading] = useState(!location.state?.results);
   const [error, setError] = useState('');
   const playerId = location.state?.playerId ?? null;
+  const [secondsRemaining, setSecondsRemaining] = useState(10);
+  const [restarting, setRestarting] = useState(false);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSecondsRemaining((current) => {
+        if (current <= 1) {
+          clearInterval(timer);
+          navigate('/join', { replace: true });
+          return 0;
+        }
+        return current - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [navigate]);
+
+  async function handlePlayAgain() {
+    if (restarting) return;
+    setRestarting(true);
+    try {
+      await sessionApi.replaySession(code);
+      navigate(`/play/${code}`, { replace: true, state: { playerId } });
+    } catch (err) {
+      toast(err.message || 'Could not restart the game', { type: 'error' });
+      setRestarting(false);
+    }
+  }
 
   useEffect(() => {
     if (results) return;
@@ -107,8 +136,12 @@ export default function ResultPage() {
 
       <RewardCard points={rewardPoints} />
 
-      <button type="button" className="btn-primary" onClick={() => navigate('/join')}>
-        Play Again
+      <p className="text-center font-mono text-sm text-slate-400">
+        Scan screen returns in <span className="font-black text-amber-400">{secondsRemaining}</span>s
+      </p>
+
+      <button type="button" className="btn-primary" onClick={handlePlayAgain} disabled={restarting}>
+        {restarting ? 'Restarting…' : '▶ Play Again'}
       </button>
     </div>
   );

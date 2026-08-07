@@ -38,7 +38,7 @@ export default function JoinGamePage() {
     try {
       const result = await sessionApi.joinSession(code);
       const playerId = result?.playerId ?? result?.id ?? null;
-      navigate(`/play/${code}`, { state: { playerId } });
+      navigate(`/select/${code}`, { state: { playerId } });
     } catch (err) {
       toast(err.message || 'Could not join session', { type: 'error' });
     } finally {

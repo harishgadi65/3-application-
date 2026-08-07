@@ -13,10 +13,14 @@ export async function listAds() {
   return axiosClient.get('/ads');
 }
 
+export async function listAllAds() {
+  return axiosClient.get('/ads/all');
+}
+
 export async function deleteAd(id) {
   return axiosClient.delete(`/ads/${id}`);
 }
 
 export async function updateAd(id, payload) {
-  return axiosClient.put(`/ads/${id}`, payload);
+  return axiosClient.put(`/ads/${id}`, null, { params: payload });
 }

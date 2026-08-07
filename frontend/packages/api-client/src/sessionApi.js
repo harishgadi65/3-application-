@@ -1,15 +1,28 @@
 import axiosClient from './axiosClient.js';
 
+function normalizeSession(session) {
+  if (!session || typeof session !== 'object') return session;
+
+  return {
+    ...session,
+    code: session.code ?? session.sessionCode,
+    phase: session.phase ?? session.status,
+    playerCount: session.playerCount ?? session.currentPlayerCount,
+  };
+}
+
 export async function createSession({ gameType, maxPlayers, gameDurationSeconds }) {
-  return axiosClient.post('/sessions', {
+  const session = await axiosClient.post('/sessions', {
     gameType,
     maxPlayers,
     gameDurationSeconds,
   });
+  return normalizeSession(session);
 }
 
 export async function getSession(code) {
-  return axiosClient.get(`/sessions/${code}`);
+  const session = await axiosClient.get(`/sessions/${code}`);
+  return normalizeSession(session);
 }
 
 export async function startSession(code) {
@@ -21,7 +34,8 @@ export async function endSession(code) {
 }
 
 export async function listActiveSessions() {
-  return axiosClient.get('/sessions/active');
+  const sessions = await axiosClient.get('/sessions/active');
+  return Array.isArray(sessions) ? sessions.map(normalizeSession) : [];
 }
 
 /**
@@ -35,6 +49,16 @@ export function getSessionQrUrl(code) {
 
 export async function joinSession(code, payload = {}) {
   return axiosClient.post(`/sessions/${code}/join`, payload);
+}
+
+export async function selectGame(code, gameType) {
+  const session = await axiosClient.post(`/sessions/${code}/select-game`, { gameType });
+  return normalizeSession(session);
+}
+
+export async function replaySession(code) {
+  const session = await axiosClient.post(`/sessions/${code}/replay`);
+  return normalizeSession(session);
 }
 
 export async function listPlayers(code) {

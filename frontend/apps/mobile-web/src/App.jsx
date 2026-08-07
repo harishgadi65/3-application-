@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import JoinGamePage from './pages/JoinGamePage.jsx';
 import GamePlayPage from './pages/GamePlayPage.jsx';
+import GameSelectPage from './pages/GameSelectPage.jsx';
 import ResultPage from './pages/ResultPage.jsx';
 import HistoryPage from './pages/HistoryPage.jsx';
 
@@ -60,6 +61,15 @@ export default function App() {
                 <Route path="/result/:code" element={<ResultPage />} />
                 <Route path="/history" element={<HistoryPage />} />
               </Route>
+
+              <Route
+                path="/select/:code"
+                element={
+                  <RequireAuth>
+                    <GameSelectPage />
+                  </RequireAuth>
+                }
+              />
 
               <Route
                 path="/play/:code"

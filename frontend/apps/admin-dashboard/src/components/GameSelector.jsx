@@ -16,17 +16,27 @@ export default function GameSelector({ onCreated, onCancel }) {
   const [maxPlayers, setMaxPlayers] = useState(4);
   const [gameDurationSeconds, setGameDurationSeconds] = useState(60);
   const [submitting, setSubmitting] = useState(false);
+  const gameList = Array.isArray(games) ? games : [];
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     gameApi
       .listGames()
-      .then((list) => {
+      .then((response) => {
         if (cancelled) return;
-        setGames(list || []);
-        if (list && list.length > 0) {
-          selectGame(list[0]);
+
+        // Accept both the API client's normalized array and the backend's
+        // { games: [...] } response. The final fallback also covers an
+        // unprocessed Axios response during development/HMR.
+        const list = Array.isArray(response)
+          ? response
+          : response?.games ?? response?.data?.games ?? response?.data?.data?.games;
+        const availableGames = Array.isArray(list) ? list : [];
+
+        setGames(availableGames);
+        if (availableGames.length > 0) {
+          selectGame(availableGames[0]);
         }
       })
       .catch((err) => {
@@ -71,7 +81,7 @@ export default function GameSelector({ onCreated, onCancel }) {
     return <p className="text-sm text-slate-500">Loading game types...</p>;
   }
 
-  if (error && games.length === 0) {
+  if (error && gameList.length === 0) {
     return <p className="text-sm text-rose-600">{error}</p>;
   }
 
@@ -80,7 +90,7 @@ export default function GameSelector({ onCreated, onCancel }) {
       <div>
         <p className="label">Game</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {games.map((game) => {
+          {gameList.map((game) => {
             const isSelected = game.gameType === selectedType;
             return (
               <button

@@ -43,6 +43,10 @@ public class SecurityConfig {
                         // Public
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/sessions/*/qr").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/sessions/active").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/sessions/*").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/sessions/*/players").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/sessions/*/leaderboard").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/games/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/ads").permitAll()
                         .requestMatchers("/ws/**").permitAll()
@@ -50,6 +54,7 @@ public class SecurityConfig {
 
                         // Admin-only management
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/ads/all").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/ads/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/ads/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/ads/**").hasAuthority("ROLE_ADMIN")
@@ -59,6 +64,8 @@ public class SecurityConfig {
 
                         // Player-only actions
                         .requestMatchers(HttpMethod.POST, "/api/sessions/*/join").hasAuthority("ROLE_USER")
+                        .requestMatchers(HttpMethod.POST, "/api/sessions/*/select-game").hasAuthority("ROLE_USER")
+                        .requestMatchers(HttpMethod.POST, "/api/sessions/*/replay").hasAuthority("ROLE_USER")
                         .requestMatchers(HttpMethod.GET, "/api/players/me/history").hasAuthority("ROLE_USER")
 
                         // Everything else simply requires a valid JWT (either role)

@@ -6,13 +6,13 @@ export default function Countdown({ seconds }) {
   const display = seconds > 0 ? seconds : 'GO!';
 
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center gap-10">
-      <p className="text-4xl uppercase tracking-[0.5em] text-indigo-400 font-black">
+    <div className="flex h-full w-full flex-col items-center justify-center gap-[clamp(12px,3vh,40px)]">
+      <p className="text-[clamp(18px,2vw,36px)] font-black uppercase tracking-[0.35em] text-indigo-400">
         Get ready
       </p>
       <div
         key={seconds}
-        className="animate-countdown-pop text-[26rem] leading-none font-black text-white drop-shadow-[0_0_70px_rgba(99,102,241,0.85)]"
+        className="animate-countdown-pop text-[clamp(8rem,38vh,24rem)] leading-none font-black text-white drop-shadow-[0_0_70px_rgba(99,102,241,0.85)]"
       >
         {display}
       </div>

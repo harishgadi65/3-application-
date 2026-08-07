@@ -3,12 +3,19 @@ import { adApi } from '../lib/api.js';
 import { useToast } from '@smartad/shared-ui';
 
 const MEDIA_TYPES = ['IMAGE', 'VIDEO'];
-const POSITIONS = ['TOP', 'BOTTOM', 'LEFT', 'RIGHT'];
+const POSITIONS = ['STARTUP', 'TOP', 'BOTTOM', 'LEFT', 'RIGHT'];
+const POSITION_LABELS = {
+  STARTUP: 'Starting screen (single ad + QR)',
+  TOP: 'Top edge',
+  BOTTOM: 'Bottom edge',
+  LEFT: 'Left edge',
+  RIGHT: 'Right edge',
+};
 
 const initialForm = {
   title: '',
   mediaType: 'IMAGE',
-  position: 'BOTTOM',
+  position: 'STARTUP',
   displayOrder: 0,
 };
 
@@ -121,7 +128,7 @@ export default function AdUploader({ onUploaded }) {
           >
             {POSITIONS.map((position) => (
               <option key={position} value={position}>
-                {position}
+                {POSITION_LABELS[position]}
               </option>
             ))}
           </select>
