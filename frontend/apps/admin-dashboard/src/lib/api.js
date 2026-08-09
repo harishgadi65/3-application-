@@ -38,6 +38,14 @@ export const sessionApi = {
 export const gameApi = {
   listGames: apiClient.listGames,
   getGameConfig: apiClient.getGameConfig,
+  listCatalog: apiClient.listGameCatalog,
+  createGame: apiClient.createGame,
+  updateGame: apiClient.updateGame,
+  deleteGame: apiClient.deleteGame,
+  listTrash: apiClient.listGameTrash,
+  restoreGame: apiClient.restoreGame,
+  permanentlyDeleteGame: apiClient.permanentlyDeleteGame,
+  uploadGamePackage: apiClient.uploadGamePackage,
 };
 
 export const adApi = {

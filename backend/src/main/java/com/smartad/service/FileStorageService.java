@@ -35,8 +35,20 @@ public class FileStorageService {
     private String s3PublicEndpoint;
 
     public String uploadAdMedia(MultipartFile file) {
+        return upload(file, "ads");
+    }
+
+    public String uploadGameIcon(MultipartFile file) {
+        return upload(file, "games");
+    }
+
+    public String uploadGamePackage(MultipartFile file) {
+        return upload(file, "game-packages");
+    }
+
+    private String upload(MultipartFile file, String prefix) {
         String extension = extractExtension(file.getOriginalFilename());
-        String key = "ads/" + UUID.randomUUID() + (extension.isEmpty() ? "" : "." + extension);
+        String key = prefix + "/" + UUID.randomUUID() + (extension.isEmpty() ? "" : "." + extension);
 
         try {
             PutObjectRequest request = PutObjectRequest.builder()
@@ -47,7 +59,7 @@ public class FileStorageService {
 
             s3Client.putObject(request, RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
         } catch (IOException e) {
-            log.error("Failed to upload ad media to bucket {}", bucket, e);
+            log.error("Failed to upload file to bucket {}", bucket, e);
             throw new RuntimeException("Failed to upload file: " + e.getMessage(), e);
         }
 

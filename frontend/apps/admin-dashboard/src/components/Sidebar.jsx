@@ -6,6 +6,7 @@ const navItems = [
   { to: '/sessions', label: 'Sessions', icon: SessionsIcon },
   { to: '/advertisements', label: 'Advertisements', icon: AdsIcon },
   { to: '/advertisements/screens', label: 'Screens', icon: ScreensIcon, child: true },
+  { to: '/games', label: 'Games', icon: GamesIcon },
   { to: '/config', label: 'Config', icon: ConfigIcon },
 ];
 
@@ -107,6 +108,17 @@ function ScreensIcon(props) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
       <rect x="3" y="4" width="18" height="14" rx="2" />
       <path strokeLinecap="round" d="M8 21h8M12 18v3" />
+    </svg>
+  );
+}
+
+function GamesIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
+      <rect x="2" y="7" width="20" height="12" rx="4" />
+      <path strokeLinecap="round" d="M8 11v4M6 13h4" />
+      <circle cx="16" cy="12" r="1" fill="currentColor" stroke="none" />
+      <circle cx="18" cy="15" r="1" fill="currentColor" stroke="none" />
     </svg>
   );
 }

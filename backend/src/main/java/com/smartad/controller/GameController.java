@@ -49,6 +49,7 @@ public class GameController {
         return switch (plugin.getGameType()) {
             case "SNAKE" -> "Multiplayer snake on a shared grid - eat food, avoid walls and other snakes, last one alive wins.";
             case "TAP_BLAST" -> "Mash the button to fill your rocket's launch bar and react fast to BOOST/TRAP events - first to launch wins.";
+            case "PLATFORM_DASH" -> "Run, jump, and stomp your way along a shared track - dodge or stomp enemies, grab coins, and race to the finish flag.";
             default -> plugin.getDisplayName();
         };
     }
