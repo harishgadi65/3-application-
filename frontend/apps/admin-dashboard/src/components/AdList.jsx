@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { adApi } from '../lib/api.js';
 import { useToast } from '@smartad/shared-ui';
+import ConfirmDialog from './ConfirmDialog.jsx';
 
 const POSITIONS = ['STARTUP', 'TOP', 'BOTTOM', 'LEFT', 'RIGHT'];
 const POSITION_LABELS = {
@@ -39,12 +40,14 @@ function AdCard({ ad, onChanged }) {
   const [isActive, setIsActive] = useState(ad.isActive ?? true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   async function handleDelete() {
     setDeleting(true);
     try {
       await adApi.deleteAd(ad.id);
       toast('Advertisement deleted', { type: 'success' });
+      setConfirmingDelete(false);
       onChanged?.();
     } catch (err) {
       toast(err.message || 'Failed to delete advertisement', { type: 'error' });
@@ -155,13 +158,24 @@ function AdCard({ ad, onChanged }) {
           <button
             type="button"
             className="btn-danger flex-1"
-            onClick={handleDelete}
+            onClick={() => setConfirmingDelete(true)}
             disabled={deleting}
           >
             {deleting ? 'Deleting...' : 'Delete'}
           </button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmingDelete}
+        title="Delete this advertisement?"
+        message={`"${ad.title}" will be permanently deleted. This can't be undone.`}
+        confirmLabel="Delete"
+        danger
+        busy={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmingDelete(false)}
+      />
     </div>
   );
 }

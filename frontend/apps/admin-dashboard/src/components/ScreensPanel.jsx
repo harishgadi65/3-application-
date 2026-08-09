@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { adApi } from '../lib/api.js';
+import { useToast } from '@smartad/shared-ui';
+import ScreenPreviewModal from './ScreenPreviewModal.jsx';
+
+const AD_POSITIONS = ['STARTUP', 'TOP', 'BOTTOM', 'LEFT', 'RIGHT'];
 
 const STORAGE_KEY = 'smartad_screens';
 const GROUPS_STORAGE_KEY = 'smartad_screen_groups';
@@ -40,7 +45,7 @@ function demoScreens() {
     adsPlaying: (index % 5) + 1,
     status: index % 7 === 0 ? 'PAUSED' : 'ACTIVE',
     games: index % 2 === 0 ? ['SNAKE'] : ['TAP_BLAST'],
-    adAssignments: { STARTUP: [''], TOP: [''], BOTTOM: [''], LEFT: [''], RIGHT: [''] },
+    adAssignments: { STARTUP: '', TOP: '', BOTTOM: '', LEFT: '', RIGHT: '' },
     schedules: [],
     groupId: null,
     special: false,
@@ -72,13 +77,18 @@ const emptyForm = {
   adsPlaying: 1,
   status: 'ACTIVE',
   games: [],
-  adAssignments: { STARTUP: [''], TOP: [''], BOTTOM: [''], LEFT: [''], RIGHT: [''] },
+  adAssignments: { STARTUP: '', TOP: '', BOTTOM: '', LEFT: '', RIGHT: '' },
   schedules: [],
   groupId: null,
   special: false,
 };
 
-export default function ScreensPanel({ ads = [], games = [] }) {
+export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
+  const toast = useToast();
+  const uploadInputRef = useRef(null);
+  const uploadTargetRef = useRef(null);
+  const [uploadingPosition, setUploadingPosition] = useState(null);
+  const [previewingScreen, setPreviewingScreen] = useState(null);
   const [screens, setScreens] = useState(loadScreens);
   const [groups, setGroups] = useState(loadGroups);
   const [groupFilter, setGroupFilter] = useState('ALL');
@@ -134,10 +144,10 @@ export default function ScreensPanel({ ads = [], games = [] }) {
   function openControl(screen) {
     const savedAssignments = screen.adAssignments || {};
     const normalizedAssignments = Object.fromEntries(
-      ['STARTUP', 'TOP', 'BOTTOM', 'LEFT', 'RIGHT'].map((position) => {
+      AD_POSITIONS.map((position) => {
         const value = savedAssignments[position];
-        if (Array.isArray(value)) return [position, value.length > 0 ? value.map(String) : ['']];
-        return [position, value ? [String(value)] : ['']];
+        if (Array.isArray(value)) return [position, value.length > 0 ? String(value[0] || '') : ''];
+        return [position, value ? String(value) : ''];
       }),
     );
     setForm({
@@ -214,39 +224,50 @@ export default function ScreensPanel({ ads = [], games = [] }) {
     }));
   }
 
-  function updateAdSlot(position, index, adId) {
+  function setAdAssignment(position, adId) {
     setForm((current) => ({
       ...current,
-      adAssignments: {
-        ...current.adAssignments,
-        [position]: current.adAssignments[position].map((value, slotIndex) =>
-          slotIndex === index ? adId : value,
-        ),
-      },
+      adAssignments: { ...current.adAssignments, [position]: adId },
     }));
   }
 
-  function addAdSlot(position) {
-    setForm((current) => ({
-      ...current,
-      adAssignments: {
-        ...current.adAssignments,
-        [position]: [...current.adAssignments[position], ''],
-      },
-    }));
+  function clearAdAssignment(position) {
+    setAdAssignment(position, '');
   }
 
-  function removeAdSlot(position, index) {
-    setForm((current) => {
-      const remaining = current.adAssignments[position].filter((_, slotIndex) => slotIndex !== index);
-      return {
-        ...current,
-        adAssignments: {
-          ...current.adAssignments,
-          [position]: remaining.length > 0 ? remaining : [''],
-        },
-      };
-    });
+  function triggerUpload(position) {
+    uploadTargetRef.current = position;
+    setUploadingPosition(position);
+    uploadInputRef.current?.click();
+  }
+
+  async function handleFileSelected(event) {
+    const file = event.target.files?.[0];
+    const position = uploadTargetRef.current;
+    event.target.value = '';
+    if (!file || !position) {
+      setUploadingPosition(null);
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('title', file.name.replace(/\.[^.]+$/, '') || 'Untitled ad');
+      formData.append('mediaType', file.type.startsWith('video') ? 'VIDEO' : 'IMAGE');
+      formData.append('position', position);
+      formData.append('displayOrder', '0');
+
+      const created = await adApi.uploadAd(formData);
+      setAdAssignment(position, String(created.id));
+      onAdsChanged?.();
+      toast('Advertisement uploaded', { type: 'success' });
+    } catch (err) {
+      toast(err.message || 'Upload failed', { type: 'error' });
+    } finally {
+      setUploadingPosition(null);
+      uploadTargetRef.current = null;
+    }
   }
 
   const gameOptions = useMemo(() => {
@@ -417,7 +438,7 @@ export default function ScreensPanel({ ads = [], games = [] }) {
 
             <div className="mt-auto grid grid-cols-2 gap-2 border-t border-slate-100 pt-4">
               <button type="button" className="btn-secondary" onClick={() => openControl(screen)}>Control</button>
-              <button type="button" className="btn-primary" onClick={() => window.open(screen.address, '_blank', 'noopener,noreferrer')}>Preview</button>
+              <button type="button" className="btn-primary" onClick={() => setPreviewingScreen(screen)}>Preview</button>
             </div>
           </article>
         ))}
@@ -510,6 +531,13 @@ export default function ScreensPanel({ ads = [], games = [] }) {
 
             {controlTab === 'ads' && (
               <div className="space-y-4">
+                <input
+                  ref={uploadInputRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  className="hidden"
+                  onChange={handleFileSelected}
+                />
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {[
                     ['STARTUP', 'Full-screen ad'],
@@ -519,49 +547,53 @@ export default function ScreensPanel({ ads = [], games = [] }) {
                     ['RIGHT', 'Right-side ad'],
                   ].map(([position, label]) => {
                     const choices = ads.filter((ad) => ad.position === position && ad.isActive !== false);
+                    const selectedAd = form.adAssignments[position];
+                    const isUploading = uploadingPosition === position;
                     return (
                       <label key={position} className={position === 'STARTUP' ? 'block sm:col-span-2' : 'block'}>
                         <span className="label">{label}</span>
-                        <div className="space-y-2">
-                          {form.adAssignments[position].map((selectedAd, index) => (
-                            <div key={`${position}-${index}`} className="flex items-center gap-2">
-                              <select
-                                className="input min-w-0 flex-1"
-                                value={selectedAd}
-                                onChange={(e) => updateAdSlot(position, index, e.target.value)}
-                              >
-                                <option value="">No advertisement</option>
-                                {choices.map((ad) => <option key={ad.id} value={ad.id}>{ad.title}</option>)}
-                              </select>
-                              <button
-                                type="button"
-                                onClick={() => addAdSlot(position)}
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-indigo-100 text-xl font-bold text-indigo-700 hover:bg-indigo-200"
-                                aria-label={`Add another ${label}`}
-                                title="Add another advertisement"
-                              >
-                                +
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => removeAdSlot(position, index)}
-                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-rose-100 text-xl font-bold text-rose-700 hover:bg-rose-200"
-                                aria-label={`Remove ${label}`}
-                                title="Remove this advertisement"
-                              >
-                                −
-                              </button>
-                            </div>
-                          ))}
+                        <div className="relative">
+                          <select
+                            className="input min-w-0 appearance-none pr-16"
+                            value={selectedAd}
+                            disabled={isUploading}
+                            onChange={(e) => setAdAssignment(position, e.target.value)}
+                          >
+                            <option value="">No advertisement</option>
+                            {choices.map((ad) => <option key={ad.id} value={ad.id}>{ad.title}</option>)}
+                          </select>
+                          <div className="pointer-events-none absolute right-16 top-1/2 -translate-y-1/2 text-slate-400">⌄</div>
+                          <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 gap-1">
+                            <button
+                              type="button"
+                              onClick={() => clearAdAssignment(position)}
+                              disabled={!selectedAd || isUploading}
+                              className="flex h-7 w-7 items-center justify-center rounded-md text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-30"
+                              aria-label={`Remove ${label}`}
+                              title="Remove this advertisement"
+                            >
+                              −
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => triggerUpload(position)}
+                              disabled={isUploading}
+                              className="flex h-7 w-7 items-center justify-center rounded-md text-indigo-600 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-30"
+                              aria-label={`Upload a new ${label}`}
+                              title="Upload a new advertisement"
+                            >
+                              +
+                            </button>
+                          </div>
                         </div>
+                        {isUploading && <p className="mt-1 text-xs text-indigo-500">Uploading…</p>}
                       </label>
                     );
                   })}
                 </div>
                 <div className="rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-sm text-indigo-700">
-                  Assign, replace, or remove the full-screen and four-side advertisements for this screen.
+                  Pick an already-uploaded ad from the dropdown, use − to clear it, or + to browse and upload a new one straight into this slot.
                 </div>
-
               </div>
             )}
 
@@ -592,6 +624,13 @@ export default function ScreensPanel({ ads = [], games = [] }) {
           </form>
         </div>
       )}
+
+      <ScreenPreviewModal
+        screen={previewingScreen}
+        ads={ads}
+        games={games}
+        onClose={() => setPreviewingScreen(null)}
+      />
     </div>
   );
 }

@@ -78,7 +78,7 @@ export default function AdvertisementsPage({ initialTab = 'advertisements' }) {
             <AdList ads={ads} onChanged={loadAds} />
           )}
         </div>
-      </div> : <ScreensPanel ads={ads} games={games} />}
+      </div> : <ScreensPanel ads={ads} games={games} onAdsChanged={loadAds} />}
     </div>
   );
 }
