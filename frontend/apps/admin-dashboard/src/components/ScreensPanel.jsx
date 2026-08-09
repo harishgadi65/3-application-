@@ -1,7 +1,25 @@
 import { useEffect, useMemo, useState } from 'react';
 
 const STORAGE_KEY = 'smartad_screens';
+const GROUPS_STORAGE_KEY = 'smartad_screen_groups';
 const PAGE_SIZE = 20;
+
+function defaultGroups() {
+  return [
+    { id: 'area-1', name: 'Area 1' },
+    { id: 'area-2', name: 'Area 2' },
+  ];
+}
+
+function loadGroups() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(GROUPS_STORAGE_KEY));
+    if (Array.isArray(saved) && saved.length > 0) return saved;
+  } catch {
+    // Fall back to the default groups if local storage is unavailable or malformed.
+  }
+  return defaultGroups();
+}
 
 function createDisplayCode(existing = []) {
   let code;
@@ -24,6 +42,8 @@ function demoScreens() {
     games: index % 2 === 0 ? ['SNAKE'] : ['TAP_BLAST'],
     adAssignments: { STARTUP: [''], TOP: [''], BOTTOM: [''], LEFT: [''], RIGHT: [''] },
     schedules: [],
+    groupId: null,
+    special: false,
   }));
 }
 
@@ -54,18 +74,28 @@ const emptyForm = {
   games: [],
   adAssignments: { STARTUP: [''], TOP: [''], BOTTOM: [''], LEFT: [''], RIGHT: [''] },
   schedules: [],
+  groupId: null,
+  special: false,
 };
 
 export default function ScreensPanel({ ads = [], games = [] }) {
   const [screens, setScreens] = useState(loadScreens);
+  const [groups, setGroups] = useState(loadGroups);
+  const [groupFilter, setGroupFilter] = useState('ALL');
+  const [newGroupName, setNewGroupName] = useState('');
+  const [renamingGroupId, setRenamingGroupId] = useState(null);
+  const [renameDraft, setRenameDraft] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [controlTab, setControlTab] = useState('details');
-  const [customGame, setCustomGame] = useState('');
   const [scheduleDraft, setScheduleDraft] = useState({ day: 'MONDAY', startTime: '09:00', endTime: '18:00', position: 'STARTUP', adId: '' });
+
+  useEffect(() => {
+    localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(groups));
+  }, [groups]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(screens));
@@ -79,9 +109,12 @@ export default function ScreensPanel({ ads = [], games = [] }) {
         String(screen.screenNo).includes(term) ||
         screen.address.toLowerCase().includes(term) ||
         `${screen.width}x${screen.height}`.includes(term);
-      return matchesSearch && (statusFilter === 'ALL' || screen.status === statusFilter);
+      const matchesGroup =
+        groupFilter === 'ALL' ||
+        (groupFilter === 'UNGROUPED' ? !screen.groupId : screen.groupId === groupFilter);
+      return matchesSearch && matchesGroup && (statusFilter === 'ALL' || screen.status === statusFilter);
     });
-  }, [screens, search, statusFilter]);
+  }, [screens, search, statusFilter, groupFilter]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -117,6 +150,26 @@ export default function ScreensPanel({ ads = [], games = [] }) {
     setEditing(screen.id);
   }
 
+  function addGroup() {
+    const name = newGroupName.trim();
+    if (!name) return;
+    setGroups((current) => [...current, { id: `group-${Date.now()}`, name }]);
+    setNewGroupName('');
+  }
+
+  function startRenameGroup(group) {
+    setRenamingGroupId(group.id);
+    setRenameDraft(group.name);
+  }
+
+  function commitRenameGroup() {
+    const name = renameDraft.trim();
+    if (name) {
+      setGroups((current) => current.map((group) => (group.id === renamingGroupId ? { ...group, name } : group)));
+    }
+    setRenamingGroupId(null);
+  }
+
   function saveScreen(event) {
     event.preventDefault();
     const next = {
@@ -148,13 +201,6 @@ export default function ScreensPanel({ ads = [], games = [] }) {
         ? current.games.filter((type) => type !== gameType)
         : [...current.games, gameType],
     }));
-  }
-
-  function addCustomGame() {
-    const name = customGame.trim().toUpperCase().replace(/\s+/g, '_');
-    if (!name || form.games.includes(name)) return;
-    setForm((current) => ({ ...current, games: [...current.games, name] }));
-    setCustomGame('');
   }
 
   function addSchedule() {
@@ -216,19 +262,27 @@ export default function ScreensPanel({ ads = [], games = [] }) {
   }, [games, form.games]);
 
   const adName = (id) => ads.find((ad) => String(ad.id) === String(id))?.title || 'Unknown ad';
+  const groupName = (id) => groups.find((group) => group.id === id)?.name;
 
   return (
     <div className="space-y-5">
       <div className="card flex flex-wrap items-center gap-3 p-4">
         <div className="relative min-w-[240px] flex-1">
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">⌕</span>
           <input
             type="search"
-            className="input pl-9"
+            className="input pr-11"
             placeholder="Search screen number, address, or size"
             value={search}
             onChange={(event) => { setSearch(event.target.value); setPage(1); }}
           />
+          <button
+            type="button"
+            aria-label="Search"
+            onClick={() => setPage(1)}
+            className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+          >
+            ⌕
+          </button>
         </div>
         <select
           className="input w-auto min-w-36"
@@ -239,10 +293,61 @@ export default function ScreensPanel({ ads = [], games = [] }) {
           <option value="ACTIVE">Active</option>
           <option value="PAUSED">Paused</option>
         </select>
-        <button type="button" className="btn-secondary" onClick={() => { setSearch(''); setStatusFilter('ALL'); setPage(1); }}>
-          Reset filters
+      </div>
+
+      <div className="card flex flex-wrap items-center gap-2 p-4">
+        <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Groups</span>
+        <button
+          type="button"
+          onClick={() => { setGroupFilter('ALL'); setPage(1); }}
+          className={groupFilter === 'ALL' ? 'btn-primary' : 'btn-secondary'}
+        >
+          All
         </button>
-        <button type="button" className="btn-primary" onClick={openCreate}>+ Add screen</button>
+        <button
+          type="button"
+          onClick={() => { setGroupFilter('UNGROUPED'); setPage(1); }}
+          className={groupFilter === 'UNGROUPED' ? 'btn-primary' : 'btn-secondary'}
+        >
+          Ungrouped
+        </button>
+        {groups.map((group) =>
+          renamingGroupId === group.id ? (
+            <input
+              key={group.id}
+              autoFocus
+              className="input w-auto"
+              value={renameDraft}
+              onChange={(event) => setRenameDraft(event.target.value)}
+              onBlur={commitRenameGroup}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') commitRenameGroup();
+                if (event.key === 'Escape') setRenamingGroupId(null);
+              }}
+            />
+          ) : (
+            <button
+              key={group.id}
+              type="button"
+              onClick={() => { setGroupFilter(group.id); setPage(1); }}
+              onDoubleClick={() => startRenameGroup(group)}
+              title="Double-click to rename"
+              className={groupFilter === group.id ? 'btn-primary' : 'btn-secondary'}
+            >
+              {group.name}
+            </button>
+          ),
+        )}
+        <div className="ml-auto flex items-center gap-2">
+          <input
+            className="input w-auto"
+            placeholder="New group name"
+            value={newGroupName}
+            onChange={(event) => setNewGroupName(event.target.value)}
+            onKeyDown={(event) => event.key === 'Enter' && addGroup()}
+          />
+          <button type="button" className="btn-secondary whitespace-nowrap" onClick={addGroup}>+ Add group</button>
+        </div>
       </div>
 
       <div className="flex items-center justify-between text-sm text-slate-500">
@@ -272,6 +377,13 @@ export default function ScreensPanel({ ads = [], games = [] }) {
                 {screen.status}
               </span>
             </div>
+
+            {(groupName(screen.groupId) || screen.special) && (
+              <div className="flex flex-wrap items-center gap-2">
+                {groupName(screen.groupId) && <span className="badge-indigo">{groupName(screen.groupId)}</span>}
+                {screen.special && <span className="badge-amber">⭐ Special</span>}
+              </div>
+            )}
 
             <dl className="space-y-3 text-sm">
               <div>
@@ -305,7 +417,7 @@ export default function ScreensPanel({ ads = [], games = [] }) {
 
             <div className="mt-auto grid grid-cols-2 gap-2 border-t border-slate-100 pt-4">
               <button type="button" className="btn-secondary" onClick={() => openControl(screen)}>Control</button>
-              <button type="button" className="btn-primary" onClick={() => window.open(screen.address, '_blank', 'noopener,noreferrer')}>Open</button>
+              <button type="button" className="btn-primary" onClick={() => window.open(screen.address, '_blank', 'noopener,noreferrer')}>Preview</button>
             </div>
           </article>
         ))}
@@ -366,6 +478,17 @@ export default function ScreensPanel({ ads = [], games = [] }) {
               <label className="block"><span className="label">Width (px)</span><input className="input" type="number" min="320" required value={form.width} onChange={(e) => setForm({ ...form, width: e.target.value })} /></label>
               <label className="block"><span className="label">Height (px)</span><input className="input" type="number" min="240" required value={form.height} onChange={(e) => setForm({ ...form, height: e.target.value })} /></label>
               <label className="col-span-2 block"><span className="label">Number of ads playing</span><input className="input" type="number" min="0" required value={form.adsPlaying} onChange={(e) => setForm({ ...form, adsPlaying: e.target.value })} /></label>
+              <label className="block">
+                <span className="label">Group</span>
+                <select className="input" value={form.groupId || ''} onChange={(e) => setForm({ ...form, groupId: e.target.value || null })}>
+                  <option value="">Ungrouped</option>
+                  {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
+                </select>
+              </label>
+              <label className="flex items-end gap-2 pb-2">
+                <input type="checkbox" checked={form.special || false} onChange={(e) => setForm({ ...form, special: e.target.checked })} />
+                <span className="text-sm text-slate-700">⭐ Special screen</span>
+              </label>
             </div>}
 
             {controlTab === 'games' && (
@@ -382,11 +505,6 @@ export default function ScreensPanel({ ads = [], games = [] }) {
                     </label>
                   ))}
                 </div>
-                <div className="flex gap-2">
-                  <input className="input" value={customGame} onChange={(e) => setCustomGame(e.target.value)} placeholder="New game name" />
-                  <button type="button" className="btn-secondary whitespace-nowrap" onClick={addCustomGame}>Add game</button>
-                </div>
-                <p className="text-xs text-slate-400">Custom names configure the screen catalog. A playable game still requires a registered game engine.</p>
               </div>
             )}
 
