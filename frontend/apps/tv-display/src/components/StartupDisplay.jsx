@@ -29,9 +29,9 @@ export default function StartupDisplay({ ad, code, gameType }) {
 
       <div className="absolute inset-0 bg-gradient-to-r from-black/15 via-transparent to-black/75" />
 
-      <div className="absolute bottom-[10%] left-1/2 w-[clamp(280px,24vw,460px)] -translate-x-1/2 rounded-[clamp(1rem,2vw,2.5rem)] border border-white/20 bg-black/75 p-[clamp(10px,1.2vw,22px)] shadow-2xl backdrop-blur-xl">
+      <div className="absolute bottom-[10%] left-1/2 w-fit max-w-[92vw] -translate-x-1/2 rounded-[clamp(0.85rem,1.5vw,1.8rem)] border border-white/15 bg-black/75 p-[clamp(4px,0.5vw,8px)] shadow-2xl backdrop-blur-xl">
         <QRCodeDisplay code={code} compact />
-        <p className="mt-[clamp(8px,1vh,16px)] text-center text-[clamp(12px,1.15vw,20px)] font-bold uppercase tracking-[0.18em] text-indigo-300">
+        <p className="mt-[clamp(5px,0.7vh,10px)] text-center text-[clamp(11px,1vw,17px)] font-bold uppercase tracking-[0.18em] text-indigo-300">
           Scan to join
         </p>
       </div>

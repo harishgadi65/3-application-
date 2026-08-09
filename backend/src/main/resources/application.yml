@@ -53,6 +53,7 @@ app:
     secret-access-key: ${AWS_SECRET_ACCESS_KEY:minioadmin}
     s3:
       endpoint: ${AWS_S3_ENDPOINT:http://localhost:9000}
+      public-endpoint: ${AWS_S3_PUBLIC_ENDPOINT:http://localhost:9000}
       bucket: ${AWS_S3_BUCKET:ads}
 
 logging:

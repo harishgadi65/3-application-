@@ -31,6 +31,9 @@ public class FileStorageService {
     @Value("${app.aws.s3.endpoint:http://localhost:9000}")
     private String s3Endpoint;
 
+    @Value("${app.aws.s3.public-endpoint:http://localhost:9000}")
+    private String s3PublicEndpoint;
+
     public String uploadAdMedia(MultipartFile file) {
         String extension = extractExtension(file.getOriginalFilename());
         String key = "ads/" + UUID.randomUUID() + (extension.isEmpty() ? "" : "." + extension);
@@ -52,7 +55,9 @@ public class FileStorageService {
     }
 
     private String buildPublicUrl(String key) {
-        String base = s3Endpoint.endsWith("/") ? s3Endpoint.substring(0, s3Endpoint.length() - 1) : s3Endpoint;
+        String base = s3PublicEndpoint.endsWith("/")
+                ? s3PublicEndpoint.substring(0, s3PublicEndpoint.length() - 1)
+                : s3PublicEndpoint;
         return base + "/" + bucket + "/" + key;
     }
 

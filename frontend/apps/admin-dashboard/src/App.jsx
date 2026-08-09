@@ -30,6 +30,7 @@ export default function App() {
                 <Route path="/sessions" element={<SessionsPage />} />
                 <Route path="/sessions/:code" element={<SessionDetailPage />} />
                 <Route path="/advertisements" element={<AdvertisementsPage />} />
+                <Route path="/advertisements/screens" element={<AdvertisementsPage initialTab="screens" />} />
                 <Route path="/config" element={<ConfigPage />} />
               </Route>
 

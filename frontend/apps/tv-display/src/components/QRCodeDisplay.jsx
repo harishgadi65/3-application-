@@ -7,7 +7,7 @@ export default function QRCodeDisplay({ code, compact = false }) {
   const qrUrl = sessionApi.getSessionQrUrl(code);
 
   return (
-    <div className={`flex items-center bg-white shadow-[0_0_80px_rgba(99,102,241,0.35)] ${compact ? 'flex-row justify-center gap-[clamp(12px,1.2vw,22px)] rounded-[clamp(0.75rem,1.2vw,1.5rem)] p-[clamp(10px,1vw,18px)]' : 'flex-col gap-6 rounded-[2rem] p-10'}`}>
+    <div className={`flex items-center bg-white/90 shadow-[0_0_80px_rgba(99,102,241,0.35)] backdrop-blur-sm ${compact ? 'w-fit flex-row gap-[clamp(6px,0.6vw,10px)] rounded-[clamp(0.75rem,1.2vw,1.5rem)] p-[clamp(5px,0.5vw,8px)]' : 'flex-col gap-6 rounded-[2rem] p-10'}`}>
       <img
         src={qrUrl}
         alt={`QR code to join session ${code}`}
@@ -17,7 +17,7 @@ export default function QRCodeDisplay({ code, compact = false }) {
         <p className={`${compact ? 'text-[clamp(10px,0.9vw,16px)]' : 'text-2xl'} text-slate-500 font-bold uppercase tracking-[0.25em]`}>
           Scan to join
         </p>
-        <p className={`${compact ? 'whitespace-nowrap text-[clamp(22px,2.3vw,40px)]' : 'text-6xl'} text-slate-900 font-black tracking-[0.2em] mt-[clamp(2px,0.5vh,8px)]`}>
+        <p className={`${compact ? 'whitespace-nowrap text-[clamp(18px,1.8vw,32px)]' : 'text-6xl'} mt-[clamp(7px,1vh,14px)] font-black tracking-[0.2em] text-slate-900`}>
           {code}
         </p>
       </div>

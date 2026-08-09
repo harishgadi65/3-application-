@@ -5,6 +5,7 @@ const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: HomeIcon },
   { to: '/sessions', label: 'Sessions', icon: SessionsIcon },
   { to: '/advertisements', label: 'Advertisements', icon: AdsIcon },
+  { to: '/advertisements/screens', label: 'Screens', icon: ScreensIcon, child: true },
   { to: '/config', label: 'Config', icon: ConfigIcon },
 ];
 
@@ -31,12 +32,13 @@ export default function Sidebar() {
 
       <nav className="flex-1 space-y-1 px-3">
         {/* eslint-disable-next-line no-unused-vars -- Icon is used as a JSX tag below */}
-        {navItems.map(({ to, label, icon: Icon }) => (
+        {navItems.map(({ to, label, icon: Icon, child }) => (
           <NavLink
             key={to}
             to={to}
+            end={to === '/advertisements'}
             className={({ isActive }) =>
-              `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+              `flex items-center gap-3 rounded-md py-2 text-sm font-medium transition-colors ${child ? 'ml-6 px-3 text-xs' : 'px-3'} ${
                 isActive
                   ? 'bg-indigo-600 text-white'
                   : 'text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -96,6 +98,15 @@ function AdsIcon(props) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h11l5 3v6l-5 3H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1Z" />
       <path strokeLinecap="round" d="M8 15v3a2 2 0 0 0 4 0v-3" />
+    </svg>
+  );
+}
+
+function ScreensIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
+      <rect x="3" y="4" width="18" height="14" rx="2" />
+      <path strokeLinecap="round" d="M8 21h8M12 18v3" />
     </svg>
   );
 }
