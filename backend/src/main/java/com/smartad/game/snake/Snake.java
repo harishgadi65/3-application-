@@ -27,6 +27,10 @@ public class Snake {
     private boolean alive = true;
     private String color;
 
+    /** Chances left before a collision truly ends this snake - see
+     * SnakeGamePlugin's respawn-on-collision handling. */
+    private int lives = 3;
+
     public Position head() {
         return body.getFirst();
     }

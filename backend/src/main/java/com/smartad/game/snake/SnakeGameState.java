@@ -36,6 +36,11 @@ public class SnakeGameState implements GameState {
     private List<Position> food = new ArrayList<>();
     private int tickRate = 200;
 
+    /** How many snakes started the game - fixed at init, unlike snakes.size()
+     * which shrinks as players die. Needed to tell "the lone solo player is
+     * still alive" apart from "one survivor remains out of several". */
+    private int totalPlayers = 0;
+
     @Override
     public String getSessionCode() {
         return sessionCode;

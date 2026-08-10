@@ -106,6 +106,7 @@ public class SnakeGamePlugin implements GamePlugin {
             savePlayerData(sessionCode, playerId, 0, "PLAYING");
         }
         state.setSnakes(snakes);
+        state.setTotalPlayers(n);
 
         int foodCount = FOOD_MIN + random.nextInt(FOOD_MAX - FOOD_MIN + 1);
         for (int i = 0; i < foodCount; i++) {
@@ -224,9 +225,15 @@ public class SnakeGamePlugin implements GamePlugin {
         for (String playerId : aliveIds) {
             Snake snake = snakes.get(playerId);
             if (died.contains(playerId)) {
-                snake.setAlive(false);
-                events.add(GameEvent.targeted(Long.valueOf(playerId), "DEATH", Map.of("reason", "collision")));
-                savePlayerData(sessionCode, playerId, (int) redisSessionStateService.getScore(sessionCode, playerId), "ELIMINATED");
+                if (snake.getLives() > 1) {
+                    snake.setLives(snake.getLives() - 1);
+                    respawnSnake(state, snake);
+                    events.add(GameEvent.targeted(Long.valueOf(playerId), "RESPAWN", Map.of("livesRemaining", snake.getLives())));
+                } else {
+                    snake.setAlive(false);
+                    events.add(GameEvent.targeted(Long.valueOf(playerId), "DEATH", Map.of("reason", "collision")));
+                    savePlayerData(sessionCode, playerId, (int) redisSessionStateService.getScore(sessionCode, playerId), "ELIMINATED");
+                }
                 continue;
             }
 
@@ -250,8 +257,15 @@ public class SnakeGamePlugin implements GamePlugin {
 
         saveState(state);
 
+        // A solo player is trivially "the last one standing" from tick one -
+        // that must not end the game. Only end early on an actual elimination
+        // (someone died leaving a single winner in a multiplayer game, or the
+        // lone solo player's own snake just died); otherwise let it run until
+        // the session's duration timer expires.
         long aliveCount = snakes.values().stream().filter(Snake::isAlive).count();
-        if (aliveCount <= 1 && !aliveIds.isEmpty()) {
+        boolean soleSurvivorOfMultiplayer = state.getTotalPlayers() > 1 && aliveCount == 1;
+        boolean everyoneDied = aliveCount == 0 && !aliveIds.isEmpty();
+        if (soleSurvivorOfMultiplayer || everyoneDied) {
             return TickResult.builder().gameOver(true).reason("LAST_STANDING").events(events).build();
         }
 
@@ -344,6 +358,43 @@ public class SnakeGamePlugin implements GamePlugin {
 
     private int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    /** Resets a snake to a fresh short body at a random clear spot, keeping
+     * its score and remaining lives intact - see the respawn-on-collision
+     * handling in {@link #tick(String)}. */
+    private void respawnSnake(SnakeGameState state, Snake snake) {
+        Set<Position> occupied = new HashSet<>(state.getFood());
+        for (Snake other : state.getSnakes().values()) {
+            occupied.addAll(other.getBody());
+        }
+
+        SnakeDirection[] directions = SnakeDirection.values();
+        for (int attempt = 0; attempt < 200; attempt++) {
+            int x = 3 + random.nextInt(GRID_WIDTH - 6);
+            int y = 3 + random.nextInt(GRID_HEIGHT - 6);
+            SnakeDirection dir = directions[random.nextInt(directions.length)];
+            Position start = new Position(x, y);
+            Position p1 = start.translate(-dir.getDx(), -dir.getDy());
+            Position p2 = start.translate(-2 * dir.getDx(), -2 * dir.getDy());
+            if (occupied.contains(start) || occupied.contains(p1) || occupied.contains(p2)) {
+                continue;
+            }
+            snake.getBody().clear();
+            snake.getBody().add(start);
+            snake.getBody().add(p1);
+            snake.getBody().add(p2);
+            snake.setDirection(dir);
+            return;
+        }
+
+        // Very crowded board - couldn't find a clean spot in 200 tries; respawn at center anyway.
+        Position fallback = new Position(GRID_WIDTH / 2, GRID_HEIGHT / 2);
+        snake.getBody().clear();
+        snake.getBody().add(fallback);
+        snake.getBody().add(fallback.translate(-1, 0));
+        snake.getBody().add(fallback.translate(-2, 0));
+        snake.setDirection(SnakeDirection.RIGHT);
     }
 
     private void spawnFood(SnakeGameState state) {

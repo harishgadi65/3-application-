@@ -145,6 +145,20 @@ public class PlatformDashPlugin implements GamePlugin {
             }
             if (runner.getStumbleTicksRemaining() > 0) {
                 runner.setStumbleTicksRemaining(runner.getStumbleTicksRemaining() - 1);
+                if (runner.getStumbleTicksRemaining() == 0) {
+                    // Recovered - move past the enemy tile that caused the
+                    // stumble. Without this, position never changes, so the
+                    // next tick re-checks the SAME enemy tile and stumbles
+                    // again forever - a permanent soft-lock.
+                    runner.setPosition(runner.getPosition() + 1);
+                    runner.setLastEvent("RECOVERED");
+                    if (runner.getPosition() >= trackLength) {
+                        runner.setFinished(true);
+                        runner.setFinishTick(state.getTickCount());
+                        runner.setLastEvent("FINISH");
+                        redisSessionStateService.incrementScore(sessionCode, playerId, FINISH_BONUS);
+                    }
+                }
                 continue;
             }
 
