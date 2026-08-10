@@ -7,10 +7,14 @@ function sanitizeCode(value) {
   return value.toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 16);
 }
 
-/** One-time registration for a physical TV/browser installation - validates
- * the code against a real backend Screen before storing it. */
+/** Gates every fresh page load of this TV browser behind the setup
+ * password + display code - deliberately re-asked on every real open
+ * (tab refresh, browser restart), not remembered long-term. Still writes
+ * to localStorage after success so in-app navigation within this same
+ * page load (e.g. returning to idle once a game session ends) keeps
+ * working via LandingPage's own read of that value. */
 export default function DisplayCodeGate({ children }) {
-  const [savedCode, setSavedCode] = useState(() => localStorage.getItem(STORAGE_KEY) || '');
+  const [savedCode, setSavedCode] = useState('');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -49,7 +53,7 @@ export default function DisplayCodeGate({ children }) {
         <p className="mt-6 text-center text-sm font-black uppercase tracking-[0.35em] text-cyan-400">TV setup</p>
         <h1 className="mt-3 text-center text-4xl font-black">Sign in this TV</h1>
         <p className="mx-auto mt-3 max-w-md text-center text-lg text-slate-400">
-          Enter the TV setup password and the unique display code from Admin → Advertisements → Screens. This is required only once on this TV browser.
+          Enter the TV setup password and the unique display code from Admin → Advertisements → Screens.
         </p>
 
         <form onSubmit={register} className="mt-8 space-y-4">

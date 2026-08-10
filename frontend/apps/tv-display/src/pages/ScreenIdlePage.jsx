@@ -1,9 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { screenApi } from '@smartad/api-client';
 import { LoadingSpinner } from '@smartad/shared-ui';
 
-const ROTATE_INTERVAL_MS = 8000;
 const SESSION_POLL_MS = 5000;
 const DISPLAY_CODE_KEY = 'smartad_display_code';
 
@@ -25,19 +24,19 @@ function AdSlide({ ad }) {
 }
 
 /**
- * A registered screen's idle view: rotates through exactly the ads assigned
- * to this screen in the admin dashboard (matching its Preview), shows a real
- * "scan to play" QR tied to THIS screen, and hands off to the real session
- * flow (/display/:sessionCode) the moment a player scans it (or an admin
- * starts one directly) - see LandingPage for how a finished session routes
- * back here.
+ * A registered screen's idle view: loops just this screen's full-screen ad
+ * (its "FULL-SCREEN AD" slot in the admin Ads Controls tab - the top/bottom/
+ * left/right ads are side-panel ads for the game-selection screen, not for
+ * here), shows a real "scan to play" QR tied to THIS screen, and hands off
+ * to the real session flow (/display/:sessionCode) the moment a player
+ * scans it (or an admin starts one directly) - see LandingPage for how a
+ * finished session routes back here.
  */
 export default function ScreenIdlePage() {
   const { displayCode } = useParams();
   const navigate = useNavigate();
   const [screen, setScreen] = useState(null);
   const [error, setError] = useState(null);
-  const [index, setIndex] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,17 +52,6 @@ export default function ScreenIdlePage() {
       cancelled = true;
     };
   }, [displayCode]);
-
-  const ads = useMemo(
-    () => (screen ? [screen.startupAd, screen.topAd, screen.bottomAd, screen.leftAd, screen.rightAd].filter(Boolean) : []),
-    [screen],
-  );
-
-  useEffect(() => {
-    if (ads.length === 0) return undefined;
-    const timer = setInterval(() => setIndex((prev) => (prev + 1) % ads.length), ROTATE_INTERVAL_MS);
-    return () => clearInterval(timer);
-  }, [ads.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -113,25 +101,15 @@ export default function ScreenIdlePage() {
     );
   }
 
-  const ad = ads.length > 0 ? ads[index % ads.length] : null;
   const hasGames = screen.games.length > 0;
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-black">
-      <AdSlide ad={ad} />
+      <AdSlide ad={screen.startupAd} />
       <div className="absolute inset-0 bg-black/25" />
 
-      <div className="absolute bottom-6 left-6 rounded-xl border border-white/15 bg-black/70 px-5 py-3 backdrop-blur">
-        <p className="text-xs font-black uppercase tracking-[0.25em] text-cyan-300">
-          Screen #{screen.screenNo}{screen.groupName ? ` · ${screen.groupName}` : ''}
-        </p>
-        <p className="mt-1 text-sm text-slate-300">
-          {hasGames ? `Ready to play: ${screen.games.map((g) => g.displayName).join(', ')}` : 'No games configured for this screen yet'}
-        </p>
-      </div>
-
       {hasGames && (
-        <div className="absolute bottom-6 right-6 flex items-center gap-3 rounded-xl border-2 border-cyan-400/70 bg-slate-950/90 p-3 shadow-[0_0_30px_rgba(34,211,238,0.25)]">
+        <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-3 rounded-xl border-2 border-cyan-400/70 bg-slate-950/90 p-3 shadow-[0_0_30px_rgba(34,211,238,0.25)]">
           <img
             src={screenApi.getScreenQrUrl(displayCode)}
             alt={`QR code to play on screen ${displayCode}`}
