@@ -187,6 +187,21 @@ export default function TVDisplayPage() {
     [session]
   );
 
+  // Sessions started from a real screen carry that screen's own Ads
+  // Controls assignments - use those directly instead of the generic
+  // global ad rotation, which has no idea which screen this is.
+  const screenAdByPosition = useMemo(() => {
+    if (!session?.screenId) return null;
+    return {
+      TOP: session.topAd || null,
+      BOTTOM: session.bottomAd || null,
+      LEFT: session.leftAd || null,
+      RIGHT: session.rightAd || null,
+    };
+  }, [session]);
+  const displayAdByPosition = screenAdByPosition || currentAdByPosition;
+  const displayStartupAd = session?.startupAd || startupAd;
+
   let content;
   if (!session && !loadError) {
     content = (
@@ -228,12 +243,12 @@ export default function TVDisplayPage() {
 
   const isWaiting = !loadError && session && !['COUNTDOWN', 'PLAYING', 'FINISHED'].includes(phase);
   if (isWaiting && players.length === 0) {
-    return <StartupDisplay ad={startupAd} code={code} gameType={gameTypeLabel} />;
+    return <StartupDisplay ad={displayStartupAd} code={code} gameType={gameTypeLabel} />;
   }
 
   return (
     <div className="relative h-full w-full">
-      <ScreenLayout currentAdByPosition={currentAdByPosition}>{content}</ScreenLayout>
+      <ScreenLayout currentAdByPosition={displayAdByPosition}>{content}</ScreenLayout>
       <div className="absolute top-2 left-2 z-50 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold">
         <span className={`h-2 w-2 rounded-full ${connected ? 'bg-emerald-400' : 'bg-red-500 animate-pulse'}`} />
         <span className={connected ? 'text-emerald-300' : 'text-red-300'}>{connected ? 'Live OK' : 'Reconnecting…'}</span>

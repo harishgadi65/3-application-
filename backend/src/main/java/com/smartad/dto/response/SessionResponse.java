@@ -32,6 +32,16 @@ public class SessionResponse {
     /** Games available to pick from on this session's screen, if it was started from one. */
     private List<GameOption> screenGames;
 
+    /** This session's screen's own ad assignments (Admin -> Screens -> Ads
+     * Controls) - the TV's in-session view (side bands around the game
+     * area) renders these directly instead of the unrelated global ad
+     * rotation used on the idle screen. Null if not started from a screen. */
+    private AdvertisementResponse startupAd;
+    private AdvertisementResponse topAd;
+    private AdvertisementResponse bottomAd;
+    private AdvertisementResponse leftAd;
+    private AdvertisementResponse rightAd;
+
     private LocalDateTime startedAt;
     private LocalDateTime endedAt;
     private LocalDateTime createdAt;
