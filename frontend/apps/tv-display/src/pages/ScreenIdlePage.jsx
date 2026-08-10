@@ -32,11 +32,14 @@ function AdSlide({ ad }) {
  * scans it (or an admin starts one directly) - see LandingPage for how a
  * finished session routes back here.
  */
+const STARTED_STATUSES = ['COUNTDOWN', 'PLAYING'];
+
 export default function ScreenIdlePage() {
   const { displayCode } = useParams();
   const navigate = useNavigate();
   const [screen, setScreen] = useState(null);
   const [error, setError] = useState(null);
+  const [joinCode, setJoinCode] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -53,13 +56,34 @@ export default function ScreenIdlePage() {
     };
   }, [displayCode]);
 
+  // Proactively make sure a pending session exists as soon as the screen is
+  // idle, so a real unique join code is visible beside the QR before anyone
+  // has scanned it yet.
+  useEffect(() => {
+    let cancelled = false;
+    screenApi
+      .ensureScreenSession(displayCode)
+      .then((session) => {
+        const code = session?.sessionCode || session?.code;
+        if (!cancelled && code) setJoinCode(code);
+      })
+      .catch((err) => console.error('ScreenIdlePage: failed to ensure a pending session', err));
+    return () => {
+      cancelled = true;
+    };
+  }, [displayCode]);
+
+  // Only hand off to the game-selection screen once someone has actually
+  // joined (or a game has already started) - the pending session created
+  // above with zero players shouldn't move the TV off the idle/QR view.
   useEffect(() => {
     let cancelled = false;
     const findSession = async () => {
       try {
         const session = await screenApi.getActiveSessionForScreen(displayCode);
         const code = session?.sessionCode || session?.code;
-        if (!cancelled && code) navigate(`/display/${code}`, { replace: true });
+        const hasStarted = session && (session.currentPlayerCount > 0 || STARTED_STATUSES.includes(session.status));
+        if (!cancelled && code && hasStarted) navigate(`/display/${code}`, { replace: true });
       } catch (err) {
         console.error('ScreenIdlePage: failed to poll for this screen\'s active session', err);
       }
@@ -117,7 +141,7 @@ export default function ScreenIdlePage() {
           />
           <div>
             <p className="text-sm font-bold text-cyan-300">Scan to Play</p>
-            <p className="text-xs font-mono text-amber-400">{displayCode}</p>
+            <p className="text-xs font-mono text-amber-400">{joinCode || '…'}</p>
           </div>
         </div>
       )}

@@ -231,5 +231,13 @@ export default function TVDisplayPage() {
     return <StartupDisplay ad={startupAd} code={code} gameType={gameTypeLabel} />;
   }
 
-  return <ScreenLayout currentAdByPosition={currentAdByPosition}>{content}</ScreenLayout>;
+  return (
+    <div className="relative h-full w-full">
+      <ScreenLayout currentAdByPosition={currentAdByPosition}>{content}</ScreenLayout>
+      <div className="absolute top-2 left-2 z-50 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold">
+        <span className={`h-2 w-2 rounded-full ${connected ? 'bg-emerald-400' : 'bg-red-500 animate-pulse'}`} />
+        <span className={connected ? 'text-emerald-300' : 'text-red-300'}>{connected ? 'Live OK' : 'Reconnecting…'}</span>
+      </div>
+    </div>
+  );
 }

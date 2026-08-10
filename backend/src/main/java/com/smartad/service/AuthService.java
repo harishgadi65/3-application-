@@ -1,5 +1,6 @@
 package com.smartad.service;
 
+import com.smartad.dto.request.GuestJoinRequest;
 import com.smartad.dto.request.LoginRequest;
 import com.smartad.dto.request.RegisterRequest;
 import com.smartad.dto.response.AuthResponse;
@@ -15,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.UUID;
 
 /**
  * Handles registration/login for both players (USER role) and admins
@@ -63,6 +66,46 @@ public class AuthService {
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new AuthenticationException("Invalid username or password");
         }
+
+        String token = jwtTokenProvider.generateToken(user.getId(), user.getUsername(), Constants.ROLE_USER);
+
+        return AuthResponse.builder()
+                .token(token)
+                .tokenType("Bearer")
+                .user(userMapper.toUserSummary(user))
+                .build();
+    }
+
+    /**
+     * Guest players (self-service scan-to-play) never set a password -
+     * mobile number is their identity. First scan creates the account;
+     * later scans from the same number reuse it and refresh email/age.
+     */
+    @Transactional
+    public AuthResponse guestJoin(GuestJoinRequest request) {
+        String mobile = request.getMobile().trim();
+        User user = userRepository.findByMobile(mobile).orElse(null);
+
+        if (user == null) {
+            if (userRepository.existsByEmail(request.getEmail())) {
+                throw new AuthenticationException("This email is already associated with another account");
+            }
+            user = User.builder()
+                    .username(mobile)
+                    .email(request.getEmail())
+                    .mobile(mobile)
+                    .age(request.getAge())
+                    .passwordHash(passwordEncoder.encode(UUID.randomUUID().toString()))
+                    .displayName(mobile)
+                    .build();
+        } else {
+            if (!user.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
+                throw new AuthenticationException("This email is already associated with another account");
+            }
+            user.setEmail(request.getEmail());
+            user.setAge(request.getAge());
+        }
+        user = userRepository.save(user);
 
         String token = jwtTokenProvider.generateToken(user.getId(), user.getUsername(), Constants.ROLE_USER);
 

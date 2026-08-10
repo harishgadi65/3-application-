@@ -1,0 +1,3 @@
+ALTER TABLE users ADD COLUMN mobile VARCHAR(32) NULL;
+ALTER TABLE users ADD COLUMN age INT NULL;
+ALTER TABLE users ADD CONSTRAINT uk_users_mobile UNIQUE (mobile);

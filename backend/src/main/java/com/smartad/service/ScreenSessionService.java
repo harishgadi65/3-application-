@@ -50,23 +50,40 @@ public class ScreenSessionService {
 
     @Transactional
     public SessionResponse joinScreenSession(String displayCode, Long userId) {
+        GameSession session = resolvePendingSession(displayCode);
+        sessionService.joinSession(session.getSessionCode(), userId);
+        int count = (int) playerSessionRepository.countBySession(session);
+        return sessionMapper.toSessionResponse(session, count);
+    }
+
+    /**
+     * Called by the idle TV screen itself (no player involved) so a real,
+     * unique join code is visible beside the QR from the moment the screen
+     * goes idle - not just after someone scans. Safe to call repeatedly;
+     * once a pending session exists it's simply returned as-is.
+     */
+    @Transactional
+    public SessionResponse ensurePendingSession(String displayCode) {
+        GameSession session = resolvePendingSession(displayCode);
+        int count = (int) playerSessionRepository.countBySession(session);
+        return sessionMapper.toSessionResponse(session, count);
+    }
+
+    private GameSession resolvePendingSession(String displayCode) {
         // Pessimistic lock on the screen row: holds until this transaction
-        // commits, so a second scan arriving a moment later blocks here
-        // until it can see the session the first scan just created.
+        // commits, so a second call arriving a moment later (another scan,
+        // or the TV's own ensure-session call) blocks here until it can see
+        // the session the first call just created.
         Screen screen = screenRepository.findWithLockByDisplayCode(displayCode.trim().toUpperCase())
                 .orElseThrow(() -> new ResourceNotFoundException("No screen registered with code: " + displayCode));
         if (screen.getGameTypes().isEmpty()) {
             throw new IllegalArgumentException("This screen has no games configured yet - assign at least one in the admin dashboard.");
         }
 
-        GameSession session = gameSessionRepository.findByScreenIdAndStatusIn(screen.getId(), List.of(SessionStatus.WAITING))
+        return gameSessionRepository.findByScreenIdAndStatusIn(screen.getId(), List.of(SessionStatus.WAITING))
                 .stream()
                 .findFirst()
                 .orElseGet(() -> createSessionForScreen(screen));
-
-        sessionService.joinSession(session.getSessionCode(), userId);
-        int count = (int) playerSessionRepository.countBySession(session);
-        return sessionMapper.toSessionResponse(session, count);
     }
 
     @Transactional(readOnly = true)

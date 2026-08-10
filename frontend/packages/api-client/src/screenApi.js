@@ -21,6 +21,11 @@ export async function joinScreenSession(displayCode) {
   return axiosClient.post(`/screens/by-code/${displayCode}/join`);
 }
 
+/** TV-triggered (no player yet): makes sure a pending session exists so a real join code can be shown beside the QR. */
+export async function ensureScreenSession(displayCode) {
+  return axiosClient.post(`/screens/by-code/${displayCode}/ensure-session`);
+}
+
 /** One-time TV setup gate - checks the shared device password and the display code together. */
 export async function verifyTvSetup(displayCode, password) {
   return axiosClient.post('/screens/tv-setup', { displayCode, password });

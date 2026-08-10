@@ -26,7 +26,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "users", uniqueConstraints = {
         @UniqueConstraint(name = "uk_users_username", columnNames = "username"),
-        @UniqueConstraint(name = "uk_users_email", columnNames = "email")
+        @UniqueConstraint(name = "uk_users_email", columnNames = "email"),
+        @UniqueConstraint(name = "uk_users_mobile", columnNames = "mobile")
 })
 public class User extends BaseEntity {
 
@@ -41,6 +42,14 @@ public class User extends BaseEntity {
 
     @Column(name = "display_name", nullable = false, length = 128)
     private String displayName;
+
+    /** Set only for guest players who joined by scanning a screen's QR
+     * code (see AuthService#guestJoin) - null for accounts created via
+     * the traditional username/password register flow. */
+    @Column(length = 32)
+    private String mobile;
+
+    private Integer age;
 
     @Column(name = "avatar_url", length = 512)
     private String avatarUrl;

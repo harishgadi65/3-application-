@@ -51,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/ads").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/screens/by-code/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/screens/tv-setup").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/screens/by-code/*/ensure-session").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/actuator/health").permitAll()
 

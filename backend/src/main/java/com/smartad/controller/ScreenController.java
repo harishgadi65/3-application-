@@ -58,6 +58,13 @@ public class ScreenController {
         return ResponseEntity.ok(ApiResponse.success(screenSessionService.getActiveSessionForScreen(displayCode)));
     }
 
+    /** Called by the idle TV itself (no player) so a real join code is
+     * shown beside the QR before anyone scans. */
+    @PostMapping("/by-code/{displayCode}/ensure-session")
+    public ResponseEntity<ApiResponse<SessionResponse>> ensureSession(@PathVariable String displayCode) {
+        return ResponseEntity.ok(ApiResponse.success(screenSessionService.ensurePendingSession(displayCode)));
+    }
+
     @PostMapping("/by-code/{displayCode}/join")
     public ResponseEntity<ApiResponse<SessionResponse>> joinScreenSession(
             @PathVariable String displayCode, @AuthenticationPrincipal Long userId) {

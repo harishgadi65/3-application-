@@ -118,6 +118,12 @@ export default function GamePlayPage() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-slate-950">
+      <div className="flex items-center justify-center gap-2 bg-black/40 px-3 py-1 text-xs font-semibold">
+        <span className={`h-2 w-2 rounded-full ${connected ? 'bg-emerald-400' : 'bg-red-500 animate-pulse'}`} />
+        <span className={connected ? 'text-emerald-300' : 'text-red-300'}>
+          {connected ? 'Live connection OK' : 'Reconnecting to game server…'}
+        </span>
+      </div>
       <GameStatus phase={phase} gameType={gameType} />
 
       {phase === 'WAITING' ? (

@@ -1,5 +1,6 @@
 package com.smartad.controller;
 
+import com.smartad.dto.request.GuestJoinRequest;
 import com.smartad.dto.request.LoginRequest;
 import com.smartad.dto.request.RegisterRequest;
 import com.smartad.dto.response.ApiResponse;
@@ -30,6 +31,12 @@ public class AuthController {
     public ResponseEntity<ApiResponse<AuthResponse>> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(ApiResponse.success("Login successful", response));
+    }
+
+    @PostMapping("/guest")
+    public ResponseEntity<ApiResponse<AuthResponse>> guestJoin(@Valid @RequestBody GuestJoinRequest request) {
+        AuthResponse response = authService.guestJoin(request);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @PostMapping("/admin/login")

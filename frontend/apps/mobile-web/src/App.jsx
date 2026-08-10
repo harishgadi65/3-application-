@@ -63,14 +63,7 @@ export default function App() {
                 <Route path="/history" element={<HistoryPage />} />
               </Route>
 
-              <Route
-                path="/scan/:displayCode"
-                element={
-                  <RequireAuth>
-                    <ScanScreenPage />
-                  </RequireAuth>
-                }
-              />
+              <Route path="/scan/:displayCode" element={<ScanScreenPage />} />
 
               <Route
                 path="/select/:code"

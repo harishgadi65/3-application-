@@ -21,6 +21,11 @@ export async function adminLogin({ username, password }) {
   return axiosClient.post('/auth/admin/login', { username, password });
 }
 
+/** No-password guest identity for self-service scan-to-play - mobile number is the account key. */
+export async function guestJoin({ mobile, email, age }) {
+  return axiosClient.post('/auth/guest', { mobile, email, age });
+}
+
 /**
  * Persists an auth response ({ token, tokenType, user | admin }) to
  * localStorage so subsequent requests are authenticated.
