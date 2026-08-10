@@ -61,6 +61,10 @@ public class GameSession extends BaseEntity {
     @Column(name = "qr_code_url", length = 512)
     private String qrCodeUrl;
 
+    /** The physical screen this session was started from, if any - see {@code ScreenSessionService}. */
+    @Column(name = "screen_id")
+    private Long screenId;
+
     /** JSON snapshot of the plugin's GameConfig at creation time, stored as text. */
     @Lob
     @Column(name = "game_config_json", columnDefinition = "TEXT")

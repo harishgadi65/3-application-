@@ -33,8 +33,20 @@ public class QrCodeService {
     }
 
     public String buildJoinUrl(String sessionCode) {
-        String base = mobileBaseUrl.endsWith("/") ? mobileBaseUrl.substring(0, mobileBaseUrl.length() - 1) : mobileBaseUrl;
-        return base + "/join/" + sessionCode;
+        return baseUrl() + "/join/" + sessionCode;
+    }
+
+    /** QR for an idle screen: scanning it joins (or starts) that screen's pending session. */
+    public byte[] generateScreenJoinQrPng(String displayCode) throws IOException, WriterException {
+        return generatePng(buildScreenJoinUrl(displayCode), SIZE, SIZE);
+    }
+
+    public String buildScreenJoinUrl(String displayCode) {
+        return baseUrl() + "/scan/" + displayCode;
+    }
+
+    private String baseUrl() {
+        return mobileBaseUrl.endsWith("/") ? mobileBaseUrl.substring(0, mobileBaseUrl.length() - 1) : mobileBaseUrl;
     }
 
     private byte[] generatePng(String content, int width, int height) throws WriterException, IOException {

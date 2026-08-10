@@ -28,20 +28,16 @@ function FakeQrCode() {
   );
 }
 
-export default function ScreenPreviewModal({ screen, ads, games, onClose }) {
+export default function ScreenPreviewModal({ screen, groupName, onClose }) {
   const [page, setPage] = useState(1);
   if (!screen) return null;
 
-  const adById = (id) => ads.find((ad) => String(ad.id) === String(id));
-  const startupAd = adById(screen.adAssignments?.STARTUP);
-  const topAd = adById(screen.adAssignments?.TOP);
-  const bottomAd = adById(screen.adAssignments?.BOTTOM);
-  const leftAd = adById(screen.adAssignments?.LEFT);
-  const rightAd = adById(screen.adAssignments?.RIGHT);
-
-  const assignedGames = (screen.games || [])
-    .map((type) => games.find((game) => game.gameType === type) || { gameType: type, displayName: type })
-    .filter(Boolean);
+  const startupAd = screen.startupAd;
+  const topAd = screen.topAd;
+  const bottomAd = screen.bottomAd;
+  const leftAd = screen.leftAd;
+  const rightAd = screen.rightAd;
+  const assignedGames = screen.games || [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4">
@@ -64,7 +60,9 @@ export default function ScreenPreviewModal({ screen, ads, games, onClose }) {
             </button>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-400">Screen #{screen.screenNo} preview · design mockup, not a live session</span>
+            <span className="text-xs text-slate-400">
+              Screen #{screen.screenNo}{groupName ? ` · ${groupName}` : ''} preview · design mockup, not a live session
+            </span>
             <button type="button" onClick={onClose} className="text-xl text-slate-400 hover:text-white" aria-label="Close">×</button>
           </div>
         </div>

@@ -1,86 +1,23 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { adApi } from '../lib/api.js';
-import { useToast } from '@smartad/shared-ui';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { adApi, screenApi } from '../lib/api.js';
+import { useToast, LoadingSpinner } from '@smartad/shared-ui';
 import ScreenPreviewModal from './ScreenPreviewModal.jsx';
 
-const AD_POSITIONS = ['STARTUP', 'TOP', 'BOTTOM', 'LEFT', 'RIGHT'];
-
-const STORAGE_KEY = 'smartad_screens';
-const GROUPS_STORAGE_KEY = 'smartad_screen_groups';
 const PAGE_SIZE = 20;
-
-function defaultGroups() {
-  return [
-    { id: 'area-1', name: 'Area 1' },
-    { id: 'area-2', name: 'Area 2' },
-  ];
-}
-
-function loadGroups() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(GROUPS_STORAGE_KEY));
-    if (Array.isArray(saved) && saved.length > 0) return saved;
-  } catch {
-    // Fall back to the default groups if local storage is unavailable or malformed.
-  }
-  return defaultGroups();
-}
-
-function createDisplayCode(existing = []) {
-  let code;
-  do {
-    code = `DSP-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-  } while (existing.includes(code));
-  return code;
-}
-
-function demoScreens() {
-  return Array.from({ length: 20 }, (_, index) => ({
-    id: `screen-${index + 1}`,
-    displayCode: `DSP-${String(index + 1).padStart(4, '0')}`,
-    screenNo: index + 1,
-    address: `http://localhost:5173?screen=${index + 1}`,
-    width: index % 3 === 0 ? 1366 : 1920,
-    height: index % 3 === 0 ? 768 : 1080,
-    adsPlaying: (index % 5) + 1,
-    status: index % 7 === 0 ? 'PAUSED' : 'ACTIVE',
-    games: index % 2 === 0 ? ['SNAKE'] : ['TAP_BLAST'],
-    adAssignments: { STARTUP: '', TOP: '', BOTTOM: '', LEFT: '', RIGHT: '' },
-    schedules: [],
-    groupId: null,
-    special: false,
-  }));
-}
-
-function loadScreens() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-    if (Array.isArray(saved)) {
-      const existingCodes = saved.map((screen) => screen.displayCode).filter(Boolean);
-      return saved.map((screen) => ({
-        ...screen,
-        displayCode: screen.displayCode || createDisplayCode(existingCodes),
-      }));
-    }
-  } catch {
-    // Start with demo screens if local storage is unavailable or malformed.
-  }
-  return demoScreens();
-}
 
 const emptyForm = {
   screenNo: '',
-  displayCode: '',
-  address: 'http://localhost:5173',
+  status: 'ACTIVE',
+  special: false,
   width: 1920,
   height: 1080,
-  adsPlaying: 1,
-  status: 'ACTIVE',
-  games: [],
-  adAssignments: { STARTUP: '', TOP: '', BOTTOM: '', LEFT: '', RIGHT: '' },
-  schedules: [],
-  groupId: null,
-  special: false,
+  groupId: '',
+  startupAdId: '',
+  topAdId: '',
+  bottomAdId: '',
+  leftAdId: '',
+  rightAdId: '',
+  gameTypes: [],
 };
 
 export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
@@ -89,8 +26,12 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
   const uploadTargetRef = useRef(null);
   const [uploadingPosition, setUploadingPosition] = useState(null);
   const [previewingScreen, setPreviewingScreen] = useState(null);
-  const [screens, setScreens] = useState(loadScreens);
-  const [groups, setGroups] = useState(loadGroups);
+
+  const [screens, setScreens] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
   const [groupFilter, setGroupFilter] = useState('ALL');
   const [newGroupName, setNewGroupName] = useState('');
   const [renamingGroupId, setRenamingGroupId] = useState(null);
@@ -101,15 +42,26 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [controlTab, setControlTab] = useState('details');
-  const [scheduleDraft, setScheduleDraft] = useState({ day: 'MONDAY', startTime: '09:00', endTime: '18:00', position: 'STARTUP', adId: '' });
+  const [saving, setSaving] = useState(false);
+  const [removing, setRemoving] = useState(false);
+
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [screenList, groupList] = await Promise.all([screenApi.listScreens(), screenApi.listGroups()]);
+      setScreens(Array.isArray(screenList) ? screenList : []);
+      setGroups(Array.isArray(groupList) ? groupList : []);
+      setError('');
+    } catch (err) {
+      setError(err.message || 'Failed to load screens');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(groups));
-  }, [groups]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(screens));
-  }, [screens]);
+    loadAll();
+  }, [loadAll]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -117,11 +69,11 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
       const matchesSearch =
         !term ||
         String(screen.screenNo).includes(term) ||
-        screen.address.toLowerCase().includes(term) ||
+        screen.displayCode.toLowerCase().includes(term) ||
         `${screen.width}x${screen.height}`.includes(term);
       const matchesGroup =
         groupFilter === 'ALL' ||
-        (groupFilter === 'UNGROUPED' ? !screen.groupId : screen.groupId === groupFilter);
+        (groupFilter === 'UNGROUPED' ? !screen.groupId : String(screen.groupId) === String(groupFilter));
       return matchesSearch && matchesGroup && (statusFilter === 'ALL' || screen.status === statusFilter);
     });
   }, [screens, search, statusFilter, groupFilter]);
@@ -132,39 +84,40 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
 
   function openCreate() {
     const nextNo = screens.reduce((max, screen) => Math.max(max, Number(screen.screenNo) || 0), 0) + 1;
-    setForm({
-      ...emptyForm,
-      screenNo: nextNo,
-      displayCode: createDisplayCode(screens.map((screen) => screen.displayCode)),
-    });
+    setForm({ ...emptyForm, screenNo: nextNo });
     setControlTab('details');
     setEditing('new');
   }
 
   function openControl(screen) {
-    const savedAssignments = screen.adAssignments || {};
-    const normalizedAssignments = Object.fromEntries(
-      AD_POSITIONS.map((position) => {
-        const value = savedAssignments[position];
-        if (Array.isArray(value)) return [position, value.length > 0 ? String(value[0] || '') : ''];
-        return [position, value ? String(value) : ''];
-      }),
-    );
     setForm({
-      ...screen,
-      games: Array.isArray(screen.games) ? screen.games : [],
-      adAssignments: normalizedAssignments,
-      schedules: Array.isArray(screen.schedules) ? screen.schedules : [],
+      screenNo: screen.screenNo,
+      status: screen.status,
+      special: screen.special || false,
+      width: screen.width,
+      height: screen.height,
+      groupId: screen.groupId ? String(screen.groupId) : '',
+      startupAdId: screen.startupAd ? String(screen.startupAd.id) : '',
+      topAdId: screen.topAd ? String(screen.topAd.id) : '',
+      bottomAdId: screen.bottomAd ? String(screen.bottomAd.id) : '',
+      leftAdId: screen.leftAd ? String(screen.leftAd.id) : '',
+      rightAdId: screen.rightAd ? String(screen.rightAd.id) : '',
+      gameTypes: screen.games.map((g) => g.gameType),
     });
     setControlTab('details');
     setEditing(screen.id);
   }
 
-  function addGroup() {
+  async function addGroup() {
     const name = newGroupName.trim();
     if (!name) return;
-    setGroups((current) => [...current, { id: `group-${Date.now()}`, name }]);
-    setNewGroupName('');
+    try {
+      await screenApi.createGroup(name);
+      setNewGroupName('');
+      loadAll();
+    } catch (err) {
+      toast(err.message || 'Failed to create group', { type: 'error' });
+    }
   }
 
   function startRenameGroup(group) {
@@ -172,63 +125,97 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
     setRenameDraft(group.name);
   }
 
-  function commitRenameGroup() {
+  async function commitRenameGroup() {
     const name = renameDraft.trim();
-    if (name) {
-      setGroups((current) => current.map((group) => (group.id === renamingGroupId ? { ...group, name } : group)));
-    }
+    const id = renamingGroupId;
     setRenamingGroupId(null);
+    if (!name) return;
+    try {
+      await screenApi.renameGroup(id, name);
+      loadAll();
+    } catch (err) {
+      toast(err.message || 'Failed to rename group', { type: 'error' });
+    }
   }
 
-  function saveScreen(event) {
-    event.preventDefault();
-    const next = {
-      ...form,
-      id: editing === 'new' ? `screen-${Date.now()}` : editing,
+  function buildPayload() {
+    return {
       screenNo: Number(form.screenNo),
+      status: form.status,
+      special: form.special,
       width: Number(form.width),
       height: Number(form.height),
-      adsPlaying: Number(form.adsPlaying),
+      groupId: form.groupId ? Number(form.groupId) : null,
+      clearGroup: !form.groupId,
+      startupAdId: form.startupAdId ? Number(form.startupAdId) : null,
+      clearStartupAd: !form.startupAdId,
+      topAdId: form.topAdId ? Number(form.topAdId) : null,
+      clearTopAd: !form.topAdId,
+      bottomAdId: form.bottomAdId ? Number(form.bottomAdId) : null,
+      clearBottomAd: !form.bottomAdId,
+      leftAdId: form.leftAdId ? Number(form.leftAdId) : null,
+      clearLeftAd: !form.leftAdId,
+      rightAdId: form.rightAdId ? Number(form.rightAdId) : null,
+      clearRightAd: !form.rightAdId,
+      gameTypes: form.gameTypes,
     };
-    setScreens((current) =>
-      editing === 'new'
-        ? [...current, next]
-        : current.map((screen) => (screen.id === editing ? next : screen)),
-    );
-    setEditing(null);
   }
 
-  function removeScreen() {
+  async function saveScreen(event) {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      const payload = buildPayload();
+      if (editing === 'new') {
+        await screenApi.createScreen(payload);
+        toast('Screen added', { type: 'success' });
+      } else {
+        await screenApi.updateScreen(editing, payload);
+        toast('Screen updated', { type: 'success' });
+      }
+      setEditing(null);
+      loadAll();
+    } catch (err) {
+      toast(err.message || 'Failed to save screen', { type: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeScreen() {
     if (editing === 'new') return;
-    setScreens((current) => current.filter((screen) => screen.id !== editing));
-    setEditing(null);
+    setRemoving(true);
+    try {
+      await screenApi.deleteScreen(editing);
+      toast('Screen removed', { type: 'success' });
+      setEditing(null);
+      loadAll();
+    } catch (err) {
+      toast(err.message || 'Failed to remove screen', { type: 'error' });
+    } finally {
+      setRemoving(false);
+    }
   }
 
   function toggleGame(gameType) {
     setForm((current) => ({
       ...current,
-      games: current.games.includes(gameType)
-        ? current.games.filter((type) => type !== gameType)
-        : [...current.games, gameType],
+      gameTypes: current.gameTypes.includes(gameType)
+        ? current.gameTypes.filter((type) => type !== gameType)
+        : [...current.gameTypes, gameType],
     }));
   }
 
-  function addSchedule() {
-    if (!scheduleDraft.adId) return;
-    setForm((current) => ({
-      ...current,
-      schedules: [
-        ...current.schedules,
-        { ...scheduleDraft, id: `schedule-${Date.now()}` },
-      ],
-    }));
-  }
+  const AD_FIELD_BY_POSITION = {
+    STARTUP: 'startupAdId',
+    TOP: 'topAdId',
+    BOTTOM: 'bottomAdId',
+    LEFT: 'leftAdId',
+    RIGHT: 'rightAdId',
+  };
 
   function setAdAssignment(position, adId) {
-    setForm((current) => ({
-      ...current,
-      adAssignments: { ...current.adAssignments, [position]: adId },
-    }));
+    setForm((current) => ({ ...current, [AD_FIELD_BY_POSITION[position]]: adId }));
   }
 
   function clearAdAssignment(position) {
@@ -276,14 +263,28 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
       label: game.displayName || game.gameType,
       registered: true,
     }));
-    const custom = form.games
+    const custom = form.gameTypes
       .filter((type) => !registered.some((game) => game.type === type))
       .map((type) => ({ type, label: type.replace(/_/g, ' '), registered: false }));
     return [...registered, ...custom];
-  }, [games, form.games]);
+  }, [games, form.gameTypes]);
 
-  const adName = (id) => ads.find((ad) => String(ad.id) === String(id))?.title || 'Unknown ad';
-  const groupName = (id) => groups.find((group) => group.id === id)?.name;
+  const groupName = (id) => groups.find((group) => String(group.id) === String(id))?.name;
+
+  const adsPlayingCount = (screen) =>
+    [screen.startupAd, screen.topAd, screen.bottomAd, screen.leftAd, screen.rightAd].filter(Boolean).length;
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-16">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <p className="text-sm text-rose-600">{error}</p>;
+  }
 
   return (
     <div className="space-y-5">
@@ -292,7 +293,7 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
           <input
             type="search"
             className="input pr-11"
-            placeholder="Search screen number, address, or size"
+            placeholder="Search screen number, code, or size"
             value={search}
             onChange={(event) => { setSearch(event.target.value); setPage(1); }}
           />
@@ -353,7 +354,7 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
               onClick={() => { setGroupFilter(group.id); setPage(1); }}
               onDoubleClick={() => startRenameGroup(group)}
               title="Double-click to rename"
-              className={groupFilter === group.id ? 'btn-primary' : 'btn-secondary'}
+              className={String(groupFilter) === String(group.id) ? 'btn-primary' : 'btn-secondary'}
             >
               {group.name}
             </button>
@@ -399,18 +400,14 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
               </span>
             </div>
 
-            {(groupName(screen.groupId) || screen.special) && (
+            {(screen.groupName || screen.special) && (
               <div className="flex flex-wrap items-center gap-2">
-                {groupName(screen.groupId) && <span className="badge-indigo">{groupName(screen.groupId)}</span>}
+                {screen.groupName && <span className="badge-indigo">{screen.groupName}</span>}
                 {screen.special && <span className="badge-amber">⭐ Special</span>}
               </div>
             )}
 
             <dl className="space-y-3 text-sm">
-              <div>
-                <dt className="text-xs font-medium uppercase text-slate-400">Address</dt>
-                <dd className="mt-1 truncate font-mono text-xs text-slate-700" title={screen.address}>{screen.address}</dd>
-              </div>
               <div>
                 <dt className="text-xs font-medium uppercase text-slate-400">Display code</dt>
                 <dd className="mt-1 flex items-center justify-between gap-2">
@@ -431,7 +428,7 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
                 </div>
                 <div>
                   <dt className="text-xs font-medium uppercase text-slate-400">Ads playing</dt>
-                  <dd className="mt-1 text-xl font-black text-indigo-600">{screen.adsPlaying}</dd>
+                  <dd className="mt-1 text-xl font-black text-indigo-600">{adsPlayingCount(screen)}</dd>
                 </div>
               </div>
             </dl>
@@ -472,9 +469,8 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
             <div className="mb-5 flex gap-1 overflow-x-auto border-b border-slate-200">
               {[
                 ['details', 'Details'],
-                ['games', `Games (${form.games.length})`],
+                ['games', `Games (${form.gameTypes.length})`],
                 ['ads', 'Ads Controls'],
-                ['schedule', `Schedule (${form.schedules.length})`],
               ].map(([value, label]) => (
                 <button
                   key={value}
@@ -490,24 +486,26 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
             {controlTab === 'details' && <div className="grid grid-cols-2 gap-4">
               <label className="block"><span className="label">Screen number</span><input className="input" type="number" min="1" required value={form.screenNo} onChange={(e) => setForm({ ...form, screenNo: e.target.value })} /></label>
               <label className="block"><span className="label">Status</span><select className="input" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}><option value="ACTIVE">Active</option><option value="PAUSED">Paused</option></select></label>
-              <label className="col-span-2 block">
-                <span className="label">Unique display code</span>
-                <input className="input bg-slate-50 font-mono font-bold tracking-wider text-slate-600" readOnly value={form.displayCode} />
-                <span className="mt-1 block text-xs text-slate-400">Generated once for this screen and cannot be changed.</span>
-              </label>
-              <label className="col-span-2 block"><span className="label">Screen address</span><input className="input" type="url" required value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></label>
+              {editing !== 'new' && (
+                <label className="col-span-2 block">
+                  <span className="label">Unique display code</span>
+                  <input className="input bg-slate-50 font-mono font-bold tracking-wider text-slate-600" readOnly value={screens.find((s) => s.id === editing)?.displayCode || ''} />
+                  <span className="mt-1 block text-xs text-slate-400">
+                    Generated automatically and cannot be changed. Enter this on a TV device to connect it to this screen.
+                  </span>
+                </label>
+              )}
               <label className="block"><span className="label">Width (px)</span><input className="input" type="number" min="320" required value={form.width} onChange={(e) => setForm({ ...form, width: e.target.value })} /></label>
               <label className="block"><span className="label">Height (px)</span><input className="input" type="number" min="240" required value={form.height} onChange={(e) => setForm({ ...form, height: e.target.value })} /></label>
-              <label className="col-span-2 block"><span className="label">Number of ads playing</span><input className="input" type="number" min="0" required value={form.adsPlaying} onChange={(e) => setForm({ ...form, adsPlaying: e.target.value })} /></label>
               <label className="block">
                 <span className="label">Group</span>
-                <select className="input" value={form.groupId || ''} onChange={(e) => setForm({ ...form, groupId: e.target.value || null })}>
+                <select className="input" value={form.groupId} onChange={(e) => setForm({ ...form, groupId: e.target.value })}>
                   <option value="">Ungrouped</option>
                   {groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}
                 </select>
               </label>
               <label className="flex items-end gap-2 pb-2">
-                <input type="checkbox" checked={form.special || false} onChange={(e) => setForm({ ...form, special: e.target.checked })} />
+                <input type="checkbox" checked={form.special} onChange={(e) => setForm({ ...form, special: e.target.checked })} />
                 <span className="text-sm text-slate-700">⭐ Special screen</span>
               </label>
             </div>}
@@ -516,13 +514,13 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
               <div className="space-y-4">
                 <div className="rounded-lg bg-slate-50 p-4">
                   <p className="font-semibold text-slate-900">Games assigned to this screen</p>
-                  <p className="mt-1 text-sm text-slate-500">{form.games.length} game{form.games.length === 1 ? '' : 's'} available</p>
+                  <p className="mt-1 text-sm text-slate-500">{form.gameTypes.length} game{form.gameTypes.length === 1 ? '' : 's'} available</p>
                 </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {gameOptions.map((game) => (
                     <label key={game.type} className="flex cursor-pointer items-center justify-between rounded-lg border border-slate-200 p-3">
                       <span><span className="font-medium text-slate-800">{game.label}</span>{!game.registered && <span className="ml-2 text-xs text-amber-600">Custom</span>}</span>
-                      <input type="checkbox" checked={form.games.includes(game.type)} onChange={() => toggleGame(game.type)} />
+                      <input type="checkbox" checked={form.gameTypes.includes(game.type)} onChange={() => toggleGame(game.type)} />
                     </label>
                   ))}
                 </div>
@@ -547,7 +545,7 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
                     ['RIGHT', 'Right-side ad'],
                   ].map(([position, label]) => {
                     const choices = ads.filter((ad) => ad.position === position && ad.isActive !== false);
-                    const selectedAd = form.adAssignments[position];
+                    const selectedAd = form[AD_FIELD_BY_POSITION[position]];
                     const isUploading = uploadingPosition === position;
                     return (
                       <label key={position} className={position === 'STARTUP' ? 'block sm:col-span-2' : 'block'}>
@@ -596,30 +594,12 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
                 </div>
               </div>
             )}
-
-            {controlTab === 'schedule' && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3 rounded-lg bg-slate-50 p-4">
-                  <label><span className="label">Day</span><select className="input" value={scheduleDraft.day} onChange={(e) => setScheduleDraft({ ...scheduleDraft, day: e.target.value })}>{['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'].map((day) => <option key={day}>{day}</option>)}</select></label>
-                  <label><span className="label">Position</span><select className="input" value={scheduleDraft.position} onChange={(e) => setScheduleDraft({ ...scheduleDraft, position: e.target.value })}>{['STARTUP','TOP','BOTTOM','LEFT','RIGHT'].map((position) => <option key={position}>{position}</option>)}</select></label>
-                  <label><span className="label">Start time</span><input type="time" className="input" value={scheduleDraft.startTime} onChange={(e) => setScheduleDraft({ ...scheduleDraft, startTime: e.target.value })} /></label>
-                  <label><span className="label">End time</span><input type="time" className="input" value={scheduleDraft.endTime} onChange={(e) => setScheduleDraft({ ...scheduleDraft, endTime: e.target.value })} /></label>
-                  <label className="col-span-2"><span className="label">Advertisement</span><select className="input" value={scheduleDraft.adId} onChange={(e) => setScheduleDraft({ ...scheduleDraft, adId: e.target.value })}><option value="">Select advertisement</option>{ads.filter((ad) => ad.isActive !== false).map((ad) => <option key={ad.id} value={ad.id}>{ad.title} · {ad.position}</option>)}</select></label>
-                  <button type="button" className="btn-primary col-span-2" onClick={addSchedule} disabled={!scheduleDraft.adId}>Add schedule</button>
-                </div>
-                <div className="max-h-48 space-y-2 overflow-y-auto">
-                  {form.schedules.length === 0 ? <p className="py-5 text-center text-sm text-slate-400">No ad schedules configured.</p> : form.schedules.map((schedule) => (
-                    <div key={schedule.id} className="flex items-center justify-between rounded-lg border border-slate-200 p-3 text-sm">
-                      <div><p className="font-semibold text-slate-800">{schedule.day} · {schedule.startTime}–{schedule.endTime}</p><p className="text-slate-500">{schedule.position} · {adName(schedule.adId)}</p></div>
-                      <button type="button" className="text-rose-600 hover:text-rose-500" onClick={() => setForm((current) => ({ ...current, schedules: current.schedules.filter((item) => item.id !== schedule.id) }))}>Remove</button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
             <div className="mt-6 flex items-center justify-between gap-3">
-              <div>{editing !== 'new' && <button type="button" className="btn-danger" onClick={removeScreen}>Remove screen</button>}</div>
-              <div className="flex gap-2"><button type="button" className="btn-secondary" onClick={() => setEditing(null)}>Cancel</button><button type="submit" className="btn-primary">Save screen</button></div>
+              <div>{editing !== 'new' && <button type="button" className="btn-danger" onClick={removeScreen} disabled={removing}>{removing ? 'Removing...' : 'Remove screen'}</button>}</div>
+              <div className="flex gap-2">
+                <button type="button" className="btn-secondary" onClick={() => setEditing(null)} disabled={saving}>Cancel</button>
+                <button type="submit" className="btn-primary" disabled={saving}>{saving ? 'Saving...' : 'Save screen'}</button>
+              </div>
             </div>
           </form>
         </div>
@@ -627,8 +607,7 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
 
       <ScreenPreviewModal
         screen={previewingScreen}
-        ads={ads}
-        games={games}
+        groupName={previewingScreen ? groupName(previewingScreen.groupId) : null}
         onClose={() => setPreviewingScreen(null)}
       />
     </div>

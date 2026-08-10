@@ -59,3 +59,13 @@ export const adApi = {
 export const playerApi = {
   getMyHistory: apiClient.getMyHistory,
 };
+
+export const screenApi = {
+  listScreens: apiClient.listScreens,
+  createScreen: apiClient.createScreen,
+  updateScreen: apiClient.updateScreen,
+  deleteScreen: apiClient.deleteScreen,
+  listGroups: apiClient.listScreenGroups,
+  createGroup: apiClient.createScreenGroup,
+  renameGroup: apiClient.renameScreenGroup,
+};

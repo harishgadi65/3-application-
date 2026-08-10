@@ -6,6 +6,7 @@ import BottomNav from './components/BottomNav.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import JoinGamePage from './pages/JoinGamePage.jsx';
+import ScanScreenPage from './pages/ScanScreenPage.jsx';
 import GamePlayPage from './pages/GamePlayPage.jsx';
 import GameSelectPage from './pages/GameSelectPage.jsx';
 import ResultPage from './pages/ResultPage.jsx';
@@ -61,6 +62,15 @@ export default function App() {
                 <Route path="/result/:code" element={<ResultPage />} />
                 <Route path="/history" element={<HistoryPage />} />
               </Route>
+
+              <Route
+                path="/scan/:displayCode"
+                element={
+                  <RequireAuth>
+                    <ScanScreenPage />
+                  </RequireAuth>
+                }
+              />
 
               <Route
                 path="/select/:code"

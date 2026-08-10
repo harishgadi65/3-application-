@@ -3,6 +3,7 @@ import { StompProvider } from '@smartad/websocket';
 import { ErrorBoundary, ToastProvider } from '@smartad/shared-ui';
 import LandingPage from './pages/LandingPage.jsx';
 import TVDisplayPage from './pages/TVDisplayPage.jsx';
+import ScreenIdlePage from './pages/ScreenIdlePage.jsx';
 import DisplayCodeGate from './components/DisplayCodeGate.jsx';
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
             <DisplayCodeGate>
               <Routes>
                 <Route path="/" element={<LandingPage />} />
+                <Route path="/screen/:displayCode" element={<ScreenIdlePage />} />
                 <Route path="/display/:sessionCode" element={<TVDisplayPage />} />
               </Routes>
             </DisplayCodeGate>

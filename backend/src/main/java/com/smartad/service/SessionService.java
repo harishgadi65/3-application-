@@ -90,12 +90,14 @@ public class SessionService {
         return sessionMapper.toSessionResponse(session, 0);
     }
 
+    @Transactional(readOnly = true)
     public SessionResponse getSessionByCode(String code) {
         GameSession session = findSessionOrThrow(code);
         int count = (int) playerSessionRepository.countBySession(session);
         return sessionMapper.toSessionResponse(session, count);
     }
 
+    @Transactional(readOnly = true)
     public List<SessionResponse> listActiveSessions() {
         return gameSessionRepository.findByStatusIn(ACTIVE_STATUSES).stream()
                 .map(session -> sessionMapper.toSessionResponse(session, (int) playerSessionRepository.countBySession(session)))
@@ -103,6 +105,7 @@ public class SessionService {
     }
 
     /** Used by the admin dashboard to see every session regardless of status. */
+    @Transactional(readOnly = true)
     public List<SessionResponse> listAllSessions() {
         return gameSessionRepository.findAll().stream()
                 .map(session -> sessionMapper.toSessionResponse(session, (int) playerSessionRepository.countBySession(session)))

@@ -1,11 +1,22 @@
 package com.smartad.mapper;
 
 import com.smartad.dto.response.SessionResponse;
+import com.smartad.entity.GameCatalogEntry;
 import com.smartad.entity.GameSession;
+import com.smartad.entity.Screen;
+import com.smartad.repository.GameCatalogRepository;
+import com.smartad.repository.ScreenRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component
+@RequiredArgsConstructor
 public class SessionMapper {
+
+    private final ScreenRepository screenRepository;
+    private final GameCatalogRepository gameCatalogRepository;
 
     public SessionResponse toSessionResponse(GameSession session, int currentPlayerCount) {
         if (session == null) {
@@ -21,9 +32,28 @@ public class SessionMapper {
                 .currentPlayerCount(currentPlayerCount)
                 .qrCodeUrl(session.getQrCodeUrl())
                 .adminId(session.getAdmin() != null ? session.getAdmin().getId() : null)
+                .screenId(session.getScreenId())
+                .screenGames(resolveScreenGames(session.getScreenId()))
                 .startedAt(session.getStartedAt())
                 .endedAt(session.getEndedAt())
                 .createdAt(session.getCreatedAt())
                 .build();
+    }
+
+    private List<SessionResponse.GameOption> resolveScreenGames(Long screenId) {
+        if (screenId == null) {
+            return List.of();
+        }
+        Screen screen = screenRepository.findById(screenId).orElse(null);
+        if (screen == null) {
+            return List.of();
+        }
+        return screen.getGameTypes().stream()
+                .map(gameType -> {
+                    GameCatalogEntry entry = gameCatalogRepository.findById(gameType).orElse(null);
+                    String displayName = entry != null ? entry.getDisplayName() : gameType;
+                    return SessionResponse.GameOption.builder().gameType(gameType).displayName(displayName).build();
+                })
+                .toList();
     }
 }

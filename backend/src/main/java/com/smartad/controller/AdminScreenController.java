@@ -1,0 +1,74 @@
+package com.smartad.controller;
+
+import com.smartad.dto.request.UpsertScreenGroupRequest;
+import com.smartad.dto.request.UpsertScreenRequest;
+import com.smartad.dto.response.ApiResponse;
+import com.smartad.dto.response.ScreenGroupResponse;
+import com.smartad.dto.response.ScreenResponse;
+import com.smartad.service.ScreenGroupService;
+import com.smartad.service.ScreenService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+/**
+ * Admin-only screen + screen-group management. Falls under
+ * {@code /api/admin/**}, already restricted to {@code ROLE_ADMIN} by
+ * {@code SecurityConfig}.
+ */
+@RestController
+@RequestMapping("/api/admin")
+@RequiredArgsConstructor
+public class AdminScreenController {
+
+    private final ScreenService screenService;
+    private final ScreenGroupService screenGroupService;
+
+    @GetMapping("/screens")
+    public ResponseEntity<ApiResponse<List<ScreenResponse>>> listScreens() {
+        return ResponseEntity.ok(ApiResponse.success(screenService.list()));
+    }
+
+    @PostMapping("/screens")
+    public ResponseEntity<ApiResponse<ScreenResponse>> createScreen(@RequestBody UpsertScreenRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Screen created", screenService.create(request)));
+    }
+
+    @PutMapping("/screens/{id}")
+    public ResponseEntity<ApiResponse<ScreenResponse>> updateScreen(
+            @PathVariable Long id, @RequestBody UpsertScreenRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Screen updated", screenService.update(id, request)));
+    }
+
+    @DeleteMapping("/screens/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteScreen(@PathVariable Long id) {
+        screenService.delete(id);
+        return ResponseEntity.ok(ApiResponse.success("Screen removed", null));
+    }
+
+    @GetMapping("/screen-groups")
+    public ResponseEntity<ApiResponse<List<ScreenGroupResponse>>> listGroups() {
+        return ResponseEntity.ok(ApiResponse.success(screenGroupService.list()));
+    }
+
+    @PostMapping("/screen-groups")
+    public ResponseEntity<ApiResponse<ScreenGroupResponse>> createGroup(@Valid @RequestBody UpsertScreenGroupRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Group created", screenGroupService.create(request.getName())));
+    }
+
+    @PutMapping("/screen-groups/{id}")
+    public ResponseEntity<ApiResponse<ScreenGroupResponse>> renameGroup(
+            @PathVariable Long id, @Valid @RequestBody UpsertScreenGroupRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Group renamed", screenGroupService.rename(id, request.getName())));
+    }
+}

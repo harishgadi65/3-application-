@@ -106,6 +106,7 @@ services:
       SERVER_PORT: ${SERVER_PORT:-8080}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174,http://localhost:5175}
       APP_FRONTEND_MOBILE_URL: ${APP_FRONTEND_MOBILE_URL:-http://localhost:5174}
+      TV_SETUP_PASSWORD: ${TV_SETUP_PASSWORD:-smartadtv123}
       # JDWP remote-debug agent — lets VS Code's "Backend: Attach to Docker" launch
       # config attach a debugger to the containerized backend. suspend=n so normal
       # startup is never blocked when no debugger is attached.

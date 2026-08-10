@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -26,7 +27,22 @@ public class SessionResponse {
     private Integer currentPlayerCount;
     private String qrCodeUrl;
     private Long adminId;
+    private Long screenId;
+
+    /** Games available to pick from on this session's screen, if it was started from one. */
+    private List<GameOption> screenGames;
+
     private LocalDateTime startedAt;
     private LocalDateTime endedAt;
     private LocalDateTime createdAt;
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class GameOption {
+        private String gameType;
+        private String displayName;
+    }
 }

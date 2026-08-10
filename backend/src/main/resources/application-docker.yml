@@ -41,6 +41,8 @@ app:
   frontend:
     mobile-url: ${APP_FRONTEND_MOBILE_URL:http://localhost:5174}
 
+  tv-setup-password: ${TV_SETUP_PASSWORD:smartadtv123}
+
   aws:
     region: ${AWS_REGION:us-east-1}
     access-key-id: ${AWS_ACCESS_KEY_ID:minioadmin}

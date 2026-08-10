@@ -14,4 +14,6 @@ public interface GameSessionRepository extends JpaRepository<GameSession, Long> 
     boolean existsBySessionCode(String sessionCode);
 
     List<GameSession> findByStatusIn(List<SessionStatus> statuses);
+
+    List<GameSession> findByScreenIdAndStatusIn(Long screenId, List<SessionStatus> statuses);
 }

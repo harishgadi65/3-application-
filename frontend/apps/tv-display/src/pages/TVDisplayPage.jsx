@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { sessionApi } from '@smartad/api-client';
 import { useStomp, useSubscription } from '@smartad/websocket';
@@ -26,6 +26,7 @@ export default function TVDisplayPage() {
   const navigate = useNavigate();
   const { client, connected } = useStomp();
   const { currentAdByPosition, startupAd } = useAdRotation();
+  const returnToIdle = useCallback(() => navigate('/', { replace: true }), [navigate]);
 
   const [session, setSession] = useState(null);
   const [loadError, setLoadError] = useState(null);
@@ -181,6 +182,10 @@ export default function TVDisplayPage() {
   }, [client, connected, gameType, phase, playerIdsKey, code]);
 
   const gameTypeLabel = gameType || session?.gameType || null;
+  const screenGames = useMemo(
+    () => (session?.screenGames || []).map((g) => ({ type: g.gameType, label: g.displayName })),
+    [session]
+  );
 
   let content;
   if (!session && !loadError) {
@@ -213,12 +218,12 @@ export default function TVDisplayPage() {
         winner={gameEnd?.winner}
         rankings={gameEnd?.rankings || rankings}
         stats={gameEnd?.stats}
-        onComplete={() => navigate('/', { replace: true })}
+        onComplete={returnToIdle}
       />
     );
   } else {
     // CREATED / WAITING / CANCELLED all render as the waiting room.
-    content = <WaitingRoom code={code} gameType={gameTypeLabel} players={players} />;
+    content = <WaitingRoom code={code} gameType={gameTypeLabel} players={players} games={screenGames} />;
   }
 
   const isWaiting = !loadError && session && !['COUNTDOWN', 'PLAYING', 'FINISHED'].includes(phase);
