@@ -40,8 +40,9 @@ public class PlatformDashPlugin implements GamePlugin {
     private static final int DEFAULT_DURATION_SECONDS = 90;
 
     private static final int TRACK_LENGTH = 26;
-    private static final double ENEMY_PROBABILITY = 0.22;
-    private static final double COIN_PROBABILITY = 0.28;
+    private static final double ENEMY_PROBABILITY = 0.18;
+    private static final double PIT_PROBABILITY = 0.12;
+    private static final double COIN_PROBABILITY = 0.25;
     private static final int STUMBLE_TICKS = 4;
     private static final int JUMP_WINDOW_TICKS = 3;
     private static final int COIN_VALUE = 5;
@@ -140,7 +141,7 @@ public class PlatformDashPlugin implements GamePlugin {
             Runner runner = entry.getValue();
             runner.setLastEvent(null);
 
-            if (runner.isFinished()) {
+            if (runner.isFinished() || runner.isEliminated()) {
                 continue;
             }
             if (runner.getStumbleTicksRemaining() > 0) {
@@ -165,17 +166,30 @@ public class PlatformDashPlugin implements GamePlugin {
             boolean jumpActive = runner.getJumpTicksRemaining() > 0;
             int nextPosition = runner.getPosition() + 1;
             String tile = nextPosition < trackLength ? track.get(nextPosition) : "EMPTY";
+            boolean isHazard = "ENEMY".equals(tile) || "PIT".equals(tile);
 
-            if ("ENEMY".equals(tile)) {
-                if (jumpActive) {
-                    runner.setJumpTicksRemaining(0);
+            if (isHazard && jumpActive) {
+                runner.setJumpTicksRemaining(0);
+                runner.setPosition(nextPosition);
+                if ("ENEMY".equals(tile)) {
                     runner.setStomps(runner.getStomps() + 1);
-                    runner.setPosition(nextPosition);
                     runner.setLastEvent("STOMP");
                     redisSessionStateService.incrementScore(sessionCode, playerId, STOMP_BONUS);
                 } else {
+                    runner.setLastEvent("CLEARED");
+                }
+            } else if (isHazard) {
+                // Touched an enemy or fell in a pit without a well-timed jump -
+                // costs one of the runner's 3 lives. Out of lives = eliminated
+                // (frozen where they are); otherwise a brief stumble, then
+                // they get up and keep running (see the recovery branch above).
+                runner.setLives(runner.getLives() - 1);
+                if (runner.getLives() <= 0) {
+                    runner.setEliminated(true);
+                    runner.setLastEvent("ELIMINATED");
+                } else {
                     runner.setStumbleTicksRemaining(STUMBLE_TICKS);
-                    runner.setLastEvent("STUMBLE");
+                    runner.setLastEvent("PIT".equals(tile) ? "FELL" : "STUMBLE");
                 }
             } else {
                 if ("COIN".equals(tile)) {
@@ -200,9 +214,9 @@ public class PlatformDashPlugin implements GamePlugin {
 
         saveState(state);
 
-        boolean allFinished = !state.getRunners().isEmpty()
-                && state.getRunners().values().stream().allMatch(Runner::isFinished);
-        if (allFinished) {
+        boolean allDone = !state.getRunners().isEmpty()
+                && state.getRunners().values().stream().allMatch(r -> r.isFinished() || r.isEliminated());
+        if (allDone) {
             return TickResult.over("ALL_FINISHED");
         }
         return TickResult.continueGame();
@@ -219,12 +233,12 @@ public class PlatformDashPlugin implements GamePlugin {
             sorted.sort((a, b) -> {
                 Runner ra = state.getRunners().get(a.playerId());
                 Runner rb = state.getRunners().get(b.playerId());
-                boolean aFinished = ra != null && ra.isFinished();
-                boolean bFinished = rb != null && rb.isFinished();
-                if (aFinished != bFinished) {
-                    return aFinished ? -1 : 1;
+                int tierA = runnerTier(ra);
+                int tierB = runnerTier(rb);
+                if (tierA != tierB) {
+                    return Integer.compare(tierA, tierB);
                 }
-                if (aFinished) {
+                if (tierA == 0) {
                     return Integer.compare(ra.getFinishTick(), rb.getFinishTick());
                 }
                 int posA = ra != null ? ra.getPosition() : 0;
@@ -283,6 +297,21 @@ public class PlatformDashPlugin implements GamePlugin {
     // Helpers
     // ---------------------------------------------------------------
 
+    /** Ranking tier for sorting: finished (0) beats still-racing (1) beats
+     * eliminated/out-of-lives (2). */
+    private int runnerTier(Runner runner) {
+        if (runner == null) {
+            return 1;
+        }
+        if (runner.isFinished()) {
+            return 0;
+        }
+        if (runner.isEliminated()) {
+            return 2;
+        }
+        return 1;
+    }
+
     private List<String> generateTrack() {
         List<String> track = new ArrayList<>(TRACK_LENGTH);
         track.add("EMPTY"); // index 0: starting tile, never "moved onto"
@@ -290,7 +319,9 @@ public class PlatformDashPlugin implements GamePlugin {
             double roll = random.nextDouble();
             if (roll < ENEMY_PROBABILITY) {
                 track.add("ENEMY");
-            } else if (roll < ENEMY_PROBABILITY + COIN_PROBABILITY) {
+            } else if (roll < ENEMY_PROBABILITY + PIT_PROBABILITY) {
+                track.add("PIT");
+            } else if (roll < ENEMY_PROBABILITY + PIT_PROBABILITY + COIN_PROBABILITY) {
                 track.add("COIN");
             } else {
                 track.add("EMPTY");

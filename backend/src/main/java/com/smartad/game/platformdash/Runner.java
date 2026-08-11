@@ -23,6 +23,11 @@ public class Runner {
     private int coins = 0;
     private int stomps = 0;
 
+    /** Chances left before a hazard (enemy touch or pit fall) takes this
+     * runner out of the race for good - see PlatformDashPlugin#tick. */
+    private int lives = 3;
+    private boolean eliminated = false;
+
     /** Transient per-tick hint for the TV/mobile views: STOMP, STUMBLE, COIN, FINISH, or null. */
     private String lastEvent;
 }

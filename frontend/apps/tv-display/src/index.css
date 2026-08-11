@@ -96,6 +96,48 @@ body {
   }
 }
 
+@keyframes runner-jump {
+  0% {
+    transform: translateY(0) rotate(0deg);
+  }
+  40% {
+    transform: translateY(-52px) rotate(-8deg);
+  }
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+@keyframes runner-run {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes coin-spin {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  50% {
+    transform: scaleX(0.25);
+  }
+}
+
+@keyframes critter-waddle {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-5deg);
+  }
+  50% {
+    transform: translateY(-4px) rotate(5deg);
+  }
+}
+
 .animate-pulse-glow {
   animation: pulse-glow 1.8s ease-in-out infinite;
 }
@@ -118,6 +160,22 @@ body {
 
 .animate-ad-fade {
   animation: marquee-fade 0.5s ease-in both;
+}
+
+.animate-runner-jump {
+  animation: runner-jump 0.45s ease-out;
+}
+
+.animate-runner-run {
+  animation: runner-run 0.3s ease-in-out infinite;
+}
+
+.animate-coin-spin {
+  animation: coin-spin 1s linear infinite;
+}
+
+.animate-critter-waddle {
+  animation: critter-waddle 0.6s ease-in-out infinite;
 }
 
 /* Big-screen scrollbars should never be visible on a TV */

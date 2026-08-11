@@ -3,6 +3,9 @@ import { useEffect, useMemo, useState } from 'react';
 const EVENT_LABEL = {
   STOMP: { text: 'STOMP! +8', color: 'text-emerald-400' },
   STUMBLE: { text: 'Ouch, stumbled!', color: 'text-red-400' },
+  FELL: { text: 'Fell in a pit!', color: 'text-red-400' },
+  ELIMINATED: { text: 'Out of lives!', color: 'text-red-500' },
+  CLEARED: { text: 'Cleared the gap!', color: 'text-emerald-400' },
   COIN: { text: 'Coin! +5', color: 'text-amber-400' },
   FINISH: { text: 'FINISHED!', color: 'text-emerald-400' },
 };
@@ -49,8 +52,19 @@ export default function JumpButton({ onAction, gameUpdateState, playerId }) {
           />
         </div>
         <div className="mt-1 flex items-center justify-between text-xs text-slate-400">
-          <span>{runner?.finished ? 'Finished!' : `${Math.round(progressPct)}% to the flag`}</span>
-          <span>{runner?.coins ?? 0}🪙</span>
+          <span>
+            {runner?.eliminated ? 'Out of lives' : runner?.finished ? 'Finished!' : `${Math.round(progressPct)}% to the flag`}
+          </span>
+          <span className="flex items-center gap-2">
+            <span className="flex gap-0.5">
+              {Array.from({ length: 3 }, (_, i) => (
+                <span key={i} className={i < (runner?.lives ?? 3) ? 'opacity-100' : 'opacity-20'}>
+                  ❤️
+                </span>
+              ))}
+            </span>
+            <span>{runner?.coins ?? 0}🪙</span>
+          </span>
         </div>
       </div>
 
@@ -61,10 +75,11 @@ export default function JumpButton({ onAction, gameUpdateState, playerId }) {
       <button
         type="button"
         onPointerDown={handlePointerDown}
+        disabled={runner?.eliminated || runner?.finished}
         style={{ touchAction: 'manipulation' }}
-        className="m-4 flex-1 select-none rounded-3xl bg-gradient-to-b from-sky-400 to-blue-600 text-3xl font-black text-white shadow-lg active:scale-[0.98] active:brightness-90"
+        className="m-4 flex-1 select-none rounded-3xl bg-gradient-to-b from-sky-400 to-blue-600 text-3xl font-black text-white shadow-lg active:scale-[0.98] active:brightness-90 disabled:opacity-40"
       >
-        JUMP!
+        {runner?.eliminated ? 'OUT' : runner?.finished ? 'DONE' : 'JUMP!'}
       </button>
     </div>
   );
