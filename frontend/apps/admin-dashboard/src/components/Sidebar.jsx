@@ -3,7 +3,6 @@ import { authApi } from '../lib/api.js';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: HomeIcon },
-  { to: '/sessions', label: 'Sessions', icon: SessionsIcon },
   { to: '/advertisements', label: 'Advertisements', icon: AdsIcon },
   { to: '/advertisements/screens', label: 'Screens', icon: ScreensIcon, child: true },
   { to: '/games', label: 'Games', icon: GamesIcon },
@@ -79,17 +78,6 @@ function HomeIcon(props) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 11.5 12 4l9 7.5" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" />
-    </svg>
-  );
-}
-
-function SessionsIcon(props) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
-      <rect x="3" y="4" width="18" height="14" rx="2" />
-      <path strokeLinecap="round" d="M3 9h18M8 4v0" />
-      <circle cx="8" cy="13" r="1.5" fill="currentColor" stroke="none" />
-      <circle cx="13" cy="13" r="1.5" fill="currentColor" stroke="none" />
     </svg>
   );
 }
