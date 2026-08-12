@@ -3,7 +3,7 @@
  * RIGHT). The parent (<ScreenLayout>) is responsible for sizing/positioning
  * the zone itself - this component just fills whatever box it is given.
  */
-export default function AdZone({ position, ad }) {
+export default function AdZone({ position, ad, loop = true, onEnded }) {
   if (!ad) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-black/50">
@@ -26,8 +26,9 @@ export default function AdZone({ position, ad }) {
           className="w-full h-full object-cover"
           autoPlay
           muted
-          loop
+          loop={loop}
           playsInline
+          onEnded={loop ? undefined : onEnded}
         />
       ) : (
         <img

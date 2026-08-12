@@ -36,11 +36,11 @@ public class SessionResponse {
      * Controls) - the TV's in-session view (side bands around the game
      * area) renders these directly instead of the unrelated global ad
      * rotation used on the idle screen. Null if not started from a screen. */
-    private AdvertisementResponse startupAd;
-    private AdvertisementResponse topAd;
-    private AdvertisementResponse bottomAd;
-    private AdvertisementResponse leftAd;
-    private AdvertisementResponse rightAd;
+    private List<AdvertisementResponse> startupAds;
+    private List<AdvertisementResponse> topAds;
+    private List<AdvertisementResponse> bottomAds;
+    private List<AdvertisementResponse> leftAds;
+    private List<AdvertisementResponse> rightAds;
 
     private LocalDateTime startedAt;
     private LocalDateTime endedAt;

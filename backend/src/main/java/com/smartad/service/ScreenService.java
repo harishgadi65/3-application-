@@ -4,9 +4,11 @@ import com.smartad.dto.request.TvSetupRequest;
 import com.smartad.dto.request.UpsertScreenRequest;
 import com.smartad.dto.response.ScreenResponse;
 import com.smartad.entity.Screen;
+import com.smartad.entity.ScreenAdAssignment;
 import com.smartad.exception.AuthenticationException;
 import com.smartad.exception.ResourceNotFoundException;
 import com.smartad.mapper.ScreenMapper;
+import com.smartad.repository.ScreenAdAssignmentRepository;
 import com.smartad.repository.ScreenRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,6 +23,7 @@ import java.util.List;
 public class ScreenService {
 
     private final ScreenRepository screenRepository;
+    private final ScreenAdAssignmentRepository screenAdAssignmentRepository;
     private final ScreenMapper screenMapper;
 
     @Value("${app.tv-setup-password}")
@@ -98,37 +101,45 @@ public class ScreenService {
         screenRepository.deleteById(id);
     }
 
+    /** Appends one ad to a screen's rotating playlist for one slot, unless
+     * it's already in there. Used both for a single screen and, called in
+     * a loop, for bulk-assigning to every screen in a group/target. */
+    @Transactional
+    public void addAdToScreens(List<Long> screenIds, String position, Long advertisementId) {
+        String normalizedPosition = position.toUpperCase();
+        for (Long screenId : screenIds) {
+            if (!screenRepository.existsById(screenId)) {
+                throw new ResourceNotFoundException("Screen not found: " + screenId);
+            }
+            if (screenAdAssignmentRepository.existsByScreenIdAndPositionAndAdvertisementId(
+                    screenId, normalizedPosition, advertisementId)) {
+                continue;
+            }
+            int nextOrder = (int) screenAdAssignmentRepository.countByScreenIdAndPosition(screenId, normalizedPosition);
+            screenAdAssignmentRepository.save(ScreenAdAssignment.builder()
+                    .screenId(screenId)
+                    .position(normalizedPosition)
+                    .advertisementId(advertisementId)
+                    .displayOrder(nextOrder)
+                    .build());
+        }
+    }
+
+    /** Removes one ad from a screen's rotating playlist for one slot. */
+    @Transactional
+    public void removeAdFromScreen(Long screenId, String position, Long advertisementId) {
+        if (!screenRepository.existsById(screenId)) {
+            throw new ResourceNotFoundException("Screen not found: " + screenId);
+        }
+        screenAdAssignmentRepository.deleteByScreenIdAndPositionAndAdvertisementId(
+                screenId, position.toUpperCase(), advertisementId);
+    }
+
     private void applyAssignments(Screen screen, UpsertScreenRequest request) {
         if (Boolean.TRUE.equals(request.getClearGroup())) {
             screen.setGroupId(null);
         } else if (request.getGroupId() != null) {
             screen.setGroupId(request.getGroupId());
-        }
-
-        if (Boolean.TRUE.equals(request.getClearStartupAd())) {
-            screen.setStartupAdId(null);
-        } else if (request.getStartupAdId() != null) {
-            screen.setStartupAdId(request.getStartupAdId());
-        }
-        if (Boolean.TRUE.equals(request.getClearTopAd())) {
-            screen.setTopAdId(null);
-        } else if (request.getTopAdId() != null) {
-            screen.setTopAdId(request.getTopAdId());
-        }
-        if (Boolean.TRUE.equals(request.getClearBottomAd())) {
-            screen.setBottomAdId(null);
-        } else if (request.getBottomAdId() != null) {
-            screen.setBottomAdId(request.getBottomAdId());
-        }
-        if (Boolean.TRUE.equals(request.getClearLeftAd())) {
-            screen.setLeftAdId(null);
-        } else if (request.getLeftAdId() != null) {
-            screen.setLeftAdId(request.getLeftAdId());
-        }
-        if (Boolean.TRUE.equals(request.getClearRightAd())) {
-            screen.setRightAdId(null);
-        } else if (request.getRightAdId() != null) {
-            screen.setRightAdId(request.getRightAdId());
         }
 
         if (request.getGameTypes() != null) {

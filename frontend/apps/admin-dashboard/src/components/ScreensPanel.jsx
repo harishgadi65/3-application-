@@ -12,12 +12,22 @@ const emptyForm = {
   width: 1920,
   height: 1080,
   groupId: '',
-  startupAdId: '',
-  topAdId: '',
-  bottomAdId: '',
-  leftAdId: '',
-  rightAdId: '',
   gameTypes: [],
+};
+
+const AD_POSITIONS = [
+  ['STARTUP', 'Full-screen ad'],
+  ['TOP', 'Top-side ad'],
+  ['BOTTOM', 'Bottom-side ad'],
+  ['LEFT', 'Left-side ad'],
+  ['RIGHT', 'Right-side ad'],
+];
+const AD_LIST_FIELD_BY_POSITION = {
+  STARTUP: 'startupAds',
+  TOP: 'topAds',
+  BOTTOM: 'bottomAds',
+  LEFT: 'leftAds',
+  RIGHT: 'rightAds',
 };
 
 export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
@@ -97,11 +107,6 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
       width: screen.width,
       height: screen.height,
       groupId: screen.groupId ? String(screen.groupId) : '',
-      startupAdId: screen.startupAd ? String(screen.startupAd.id) : '',
-      topAdId: screen.topAd ? String(screen.topAd.id) : '',
-      bottomAdId: screen.bottomAd ? String(screen.bottomAd.id) : '',
-      leftAdId: screen.leftAd ? String(screen.leftAd.id) : '',
-      rightAdId: screen.rightAd ? String(screen.rightAd.id) : '',
       gameTypes: screen.games.map((g) => g.gameType),
     });
     setControlTab('details');
@@ -147,16 +152,6 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
       height: Number(form.height),
       groupId: form.groupId ? Number(form.groupId) : null,
       clearGroup: !form.groupId,
-      startupAdId: form.startupAdId ? Number(form.startupAdId) : null,
-      clearStartupAd: !form.startupAdId,
-      topAdId: form.topAdId ? Number(form.topAdId) : null,
-      clearTopAd: !form.topAdId,
-      bottomAdId: form.bottomAdId ? Number(form.bottomAdId) : null,
-      clearBottomAd: !form.bottomAdId,
-      leftAdId: form.leftAdId ? Number(form.leftAdId) : null,
-      clearLeftAd: !form.leftAdId,
-      rightAdId: form.rightAdId ? Number(form.rightAdId) : null,
-      clearRightAd: !form.rightAdId,
       gameTypes: form.gameTypes,
     };
   }
@@ -206,22 +201,6 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
     }));
   }
 
-  const AD_FIELD_BY_POSITION = {
-    STARTUP: 'startupAdId',
-    TOP: 'topAdId',
-    BOTTOM: 'bottomAdId',
-    LEFT: 'leftAdId',
-    RIGHT: 'rightAdId',
-  };
-
-  function setAdAssignment(position, adId) {
-    setForm((current) => ({ ...current, [AD_FIELD_BY_POSITION[position]]: adId }));
-  }
-
-  function clearAdAssignment(position) {
-    setAdAssignment(position, '');
-  }
-
   function triggerUpload(position) {
     uploadTargetRef.current = position;
     setUploadingPosition(position);
@@ -229,31 +208,54 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
   }
 
   async function handleFileSelected(event) {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files || []);
     const position = uploadTargetRef.current;
     event.target.value = '';
-    if (!file || !position) {
+    if (files.length === 0 || !position || editing === 'new') {
       setUploadingPosition(null);
       return;
     }
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('title', file.name.replace(/\.[^.]+$/, '') || 'Untitled ad');
-      formData.append('mediaType', file.type.startsWith('video') ? 'VIDEO' : 'IMAGE');
-      formData.append('position', position);
-      formData.append('displayOrder', '0');
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('title', file.name.replace(/\.[^.]+$/, '') || 'Untitled ad');
+        formData.append('mediaType', file.type.startsWith('video') ? 'VIDEO' : 'IMAGE');
+        formData.append('position', position);
+        formData.append('displayOrder', '0');
 
-      const created = await adApi.uploadAd(formData);
-      setAdAssignment(position, String(created.id));
+        const created = await adApi.uploadAd(formData);
+        await screenApi.assignAd([editing], position, created.id);
+      }
       onAdsChanged?.();
-      toast('Advertisement uploaded', { type: 'success' });
+      loadAll();
+      toast(files.length > 1 ? `${files.length} advertisements uploaded` : 'Advertisement uploaded', { type: 'success' });
     } catch (err) {
       toast(err.message || 'Upload failed', { type: 'error' });
     } finally {
       setUploadingPosition(null);
       uploadTargetRef.current = null;
+    }
+  }
+
+  async function addExistingAd(position, adId) {
+    if (!adId || editing === 'new') return;
+    try {
+      await screenApi.assignAd([editing], position, Number(adId));
+      loadAll();
+    } catch (err) {
+      toast(err.message || 'Failed to assign advertisement', { type: 'error' });
+    }
+  }
+
+  async function removeAd(position, adId) {
+    if (editing === 'new') return;
+    try {
+      await screenApi.unassignAd(editing, position, adId);
+      loadAll();
+    } catch (err) {
+      toast(err.message || 'Failed to remove advertisement', { type: 'error' });
     }
   }
 
@@ -270,9 +272,11 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
   }, [games, form.gameTypes]);
 
   const groupName = (id) => groups.find((group) => String(group.id) === String(id))?.name;
+  const currentScreen = screens.find((s) => s.id === editing);
 
   const adsPlayingCount = (screen) =>
-    [screen.startupAd, screen.topAd, screen.bottomAd, screen.leftAd, screen.rightAd].filter(Boolean).length;
+    [screen.startupAds, screen.topAds, screen.bottomAds, screen.leftAds, screen.rightAds]
+      .reduce((sum, list) => sum + (list?.length || 0), 0);
 
   if (loading) {
     return (
@@ -533,64 +537,65 @@ export default function ScreensPanel({ ads = [], games = [], onAdsChanged }) {
                   ref={uploadInputRef}
                   type="file"
                   accept="image/*,video/*"
+                  multiple
                   className="hidden"
                   onChange={handleFileSelected}
                 />
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {[
-                    ['STARTUP', 'Full-screen ad'],
-                    ['TOP', 'Top-side ad'],
-                    ['BOTTOM', 'Bottom-side ad'],
-                    ['LEFT', 'Left-side ad'],
-                    ['RIGHT', 'Right-side ad'],
-                  ].map(([position, label]) => {
-                    const choices = ads.filter((ad) => ad.position === position && ad.isActive !== false);
-                    const selectedAd = form[AD_FIELD_BY_POSITION[position]];
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {AD_POSITIONS.map(([position, label]) => {
+                    const assigned = currentScreen?.[AD_LIST_FIELD_BY_POSITION[position]] || [];
+                    const assignedIds = new Set(assigned.map((ad) => ad.id));
+                    const choices = ads.filter(
+                      (ad) => ad.position === position && ad.isActive !== false && !assignedIds.has(ad.id)
+                    );
                     const isUploading = uploadingPosition === position;
                     return (
-                      <label key={position} className={position === 'STARTUP' ? 'block sm:col-span-2' : 'block'}>
-                        <span className="label">{label}</span>
-                        <div className="relative">
+                      <div key={position} className={position === 'STARTUP' ? 'block sm:col-span-2' : 'block'}>
+                        <span className="label">{label} playlist</span>
+                        <div className="space-y-1 rounded-md border border-slate-200 p-2">
+                          {assigned.length === 0 && (
+                            <p className="px-1 py-1 text-xs text-slate-400">No advertisements yet</p>
+                          )}
+                          {assigned.map((ad) => (
+                            <div key={ad.id} className="flex items-center gap-2 rounded-md bg-slate-50 px-2 py-1">
+                              <span className="flex-1 truncate text-sm text-slate-700">{ad.title}</span>
+                              <button
+                                type="button"
+                                onClick={() => removeAd(position, ad.id)}
+                                className="flex h-6 w-6 items-center justify-center rounded-md text-rose-600 hover:bg-rose-100"
+                                aria-label={`Remove ${ad.title}`}
+                                title="Remove from playlist"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-2 flex gap-2">
                           <select
-                            className="input min-w-0 appearance-none pr-16"
-                            value={selectedAd}
-                            disabled={isUploading}
-                            onChange={(e) => setAdAssignment(position, e.target.value)}
+                            className="input min-w-0"
+                            value=""
+                            disabled={isUploading || choices.length === 0}
+                            onChange={(e) => addExistingAd(position, e.target.value)}
                           >
-                            <option value="">No advertisement</option>
+                            <option value="">{choices.length === 0 ? 'No other ads to reuse' : 'Add existing ad…'}</option>
                             {choices.map((ad) => <option key={ad.id} value={ad.id}>{ad.title}</option>)}
                           </select>
-                          <div className="pointer-events-none absolute right-16 top-1/2 -translate-y-1/2 text-slate-400">⌄</div>
-                          <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 gap-1">
-                            <button
-                              type="button"
-                              onClick={() => clearAdAssignment(position)}
-                              disabled={!selectedAd || isUploading}
-                              className="flex h-7 w-7 items-center justify-center rounded-md text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-30"
-                              aria-label={`Remove ${label}`}
-                              title="Remove this advertisement"
-                            >
-                              −
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => triggerUpload(position)}
-                              disabled={isUploading}
-                              className="flex h-7 w-7 items-center justify-center rounded-md text-indigo-600 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-30"
-                              aria-label={`Upload a new ${label}`}
-                              title="Upload a new advertisement"
-                            >
-                              +
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => triggerUpload(position)}
+                            disabled={isUploading}
+                            className="btn-secondary whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {isUploading ? 'Uploading…' : '+ Upload'}
+                          </button>
                         </div>
-                        {isUploading && <p className="mt-1 text-xs text-indigo-500">Uploading…</p>}
-                      </label>
+                      </div>
                     );
                   })}
                 </div>
                 <div className="rounded-lg border border-indigo-100 bg-indigo-50 p-3 text-sm text-indigo-700">
-                  Pick an already-uploaded ad from the dropdown, use − to clear it, or + to browse and upload a new one straight into this slot.
+                  Each slot plays its ads one by one on a loop. Add several photos or videos to build a rotation, or × to drop one.
                 </div>
               </div>
             )}

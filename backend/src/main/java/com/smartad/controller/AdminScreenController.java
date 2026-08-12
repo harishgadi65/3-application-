@@ -1,5 +1,6 @@
 package com.smartad.controller;
 
+import com.smartad.dto.request.ScreenAdAssignRequest;
 import com.smartad.dto.request.UpsertScreenGroupRequest;
 import com.smartad.dto.request.UpsertScreenRequest;
 import com.smartad.dto.response.ApiResponse;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -54,6 +56,24 @@ public class AdminScreenController {
     public ResponseEntity<ApiResponse<Void>> deleteScreen(@PathVariable Long id) {
         screenService.delete(id);
         return ResponseEntity.ok(ApiResponse.success("Screen removed", null));
+    }
+
+    /** Appends one ad to the rotating playlist for a slot, on every screen
+     * listed - one screen for a single-screen assignment, or many for a
+     * group/target bulk-assign. */
+    @PostMapping("/screens/ads")
+    public ResponseEntity<ApiResponse<Void>> assignAd(@Valid @RequestBody ScreenAdAssignRequest request) {
+        screenService.addAdToScreens(request.getScreenIds(), request.getPosition(), request.getAdvertisementId());
+        return ResponseEntity.ok(ApiResponse.success("Advertisement assigned", null));
+    }
+
+    @DeleteMapping("/screens/{id}/ads")
+    public ResponseEntity<ApiResponse<Void>> unassignAd(
+            @PathVariable Long id,
+            @RequestParam String position,
+            @RequestParam Long advertisementId) {
+        screenService.removeAdFromScreen(id, position, advertisementId);
+        return ResponseEntity.ok(ApiResponse.success("Advertisement removed", null));
     }
 
     @GetMapping("/screen-groups")

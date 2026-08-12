@@ -26,16 +26,5 @@ public class UpsertScreenRequest {
     private Long groupId;
     private Boolean clearGroup;
 
-    private Long startupAdId;
-    private Boolean clearStartupAd;
-    private Long topAdId;
-    private Boolean clearTopAd;
-    private Long bottomAdId;
-    private Boolean clearBottomAd;
-    private Long leftAdId;
-    private Boolean clearLeftAd;
-    private Long rightAdId;
-    private Boolean clearRightAd;
-
     private Set<String> gameTypes;
 }

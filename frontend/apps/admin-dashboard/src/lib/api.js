@@ -68,4 +68,6 @@ export const screenApi = {
   listGroups: apiClient.listScreenGroups,
   createGroup: apiClient.createScreenGroup,
   renameGroup: apiClient.renameScreenGroup,
+  assignAd: apiClient.assignScreenAd,
+  unassignAd: apiClient.unassignScreenAd,
 };

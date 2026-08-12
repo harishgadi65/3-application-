@@ -44,11 +44,11 @@ public class SessionMapper {
                 .createdAt(session.getCreatedAt());
 
         if (screenResponse != null) {
-            builder.startupAd(screenResponse.getStartupAd())
-                    .topAd(screenResponse.getTopAd())
-                    .bottomAd(screenResponse.getBottomAd())
-                    .leftAd(screenResponse.getLeftAd())
-                    .rightAd(screenResponse.getRightAd());
+            builder.startupAds(screenResponse.getStartupAds())
+                    .topAds(screenResponse.getTopAds())
+                    .bottomAds(screenResponse.getBottomAds())
+                    .leftAds(screenResponse.getLeftAds())
+                    .rightAds(screenResponse.getRightAds());
         }
 
         return builder.build();

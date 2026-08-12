@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { screenApi } from '@smartad/api-client';
 import { LoadingSpinner } from '@smartad/shared-ui';
+import useRotatingAd from '../hooks/useRotatingAd.js';
 
 const SESSION_POLL_MS = 5000;
 const DISPLAY_CODE_KEY = 'smartad_display_code';
 
-function AdSlide({ ad }) {
+function AdSlide({ ad, loop, onEnded }) {
   if (!ad) return <div className="absolute inset-0 bg-gradient-to-br from-indigo-950 via-slate-950 to-black" />;
   return ad.mediaType === 'VIDEO' ? (
     <video
@@ -15,8 +16,9 @@ function AdSlide({ ad }) {
       className="absolute inset-0 h-full w-full object-cover animate-ad-fade"
       autoPlay
       muted
-      loop
+      loop={loop}
       playsInline
+      onEnded={loop ? undefined : onEnded}
     />
   ) : (
     <img key={ad.id} src={ad.mediaUrl} alt={ad.title || 'Advertisement'} className="absolute inset-0 h-full w-full object-cover animate-ad-fade" />
@@ -40,6 +42,7 @@ export default function ScreenIdlePage() {
   const [screen, setScreen] = useState(null);
   const [error, setError] = useState(null);
   const [joinCode, setJoinCode] = useState(null);
+  const { ad: startupAd, loop: startupLoop, onEnded: advanceStartup } = useRotatingAd(screen?.startupAds);
 
   useEffect(() => {
     let cancelled = false;
@@ -129,7 +132,7 @@ export default function ScreenIdlePage() {
 
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-black">
-      <AdSlide ad={screen.startupAd} />
+      <AdSlide ad={startupAd} loop={startupLoop} onEnded={advanceStartup} />
       <div className="absolute inset-0 bg-black/25" />
 
       {hasGames && (

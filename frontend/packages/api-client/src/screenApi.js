@@ -48,6 +48,16 @@ export async function deleteScreen(id) {
   return axiosClient.delete(`/admin/screens/${id}`);
 }
 
+/** Appends one ad to the rotating playlist for a slot on every screen id
+ * listed - one screen for a single assignment, many for a bulk-assign. */
+export async function assignScreenAd(screenIds, position, advertisementId) {
+  return axiosClient.post('/admin/screens/ads', { screenIds, position, advertisementId });
+}
+
+export async function unassignScreenAd(screenId, position, advertisementId) {
+  return axiosClient.delete(`/admin/screens/${screenId}/ads`, { params: { position, advertisementId } });
+}
+
 export async function listScreenGroups() {
   return axiosClient.get('/admin/screen-groups');
 }

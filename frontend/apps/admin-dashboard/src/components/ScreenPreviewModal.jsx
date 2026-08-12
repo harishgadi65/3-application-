@@ -32,11 +32,11 @@ export default function ScreenPreviewModal({ screen, groupName, onClose }) {
   const [page, setPage] = useState(1);
   if (!screen) return null;
 
-  const startupAd = screen.startupAd;
-  const topAd = screen.topAd;
-  const bottomAd = screen.bottomAd;
-  const leftAd = screen.leftAd;
-  const rightAd = screen.rightAd;
+  const startupAd = screen.startupAds?.[0];
+  const topAd = screen.topAds?.[0];
+  const bottomAd = screen.bottomAds?.[0];
+  const leftAd = screen.leftAds?.[0];
+  const rightAd = screen.rightAds?.[0];
   const assignedGames = screen.games || [];
 
   return (

@@ -31,11 +31,11 @@ public class ScreenResponse {
     private Long groupId;
     private String groupName;
 
-    private AdvertisementResponse startupAd;
-    private AdvertisementResponse topAd;
-    private AdvertisementResponse bottomAd;
-    private AdvertisementResponse leftAd;
-    private AdvertisementResponse rightAd;
+    private List<AdvertisementResponse> startupAds;
+    private List<AdvertisementResponse> topAds;
+    private List<AdvertisementResponse> bottomAds;
+    private List<AdvertisementResponse> leftAds;
+    private List<AdvertisementResponse> rightAds;
 
     private List<GameSummary> games;
 

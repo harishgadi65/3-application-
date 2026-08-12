@@ -1,7 +1,10 @@
+import useRotatingAd from '../hooks/useRotatingAd.js';
 import QRCodeDisplay from './QRCodeDisplay.jsx';
 
-/** Full-screen opening creative with an always-readable join QR overlay. */
-export default function StartupDisplay({ ad, code, gameType }) {
+/** Full-screen opening creative with an always-readable join QR overlay.
+ * Cycles through the screen's startup ad playlist, if it has more than one. */
+export default function StartupDisplay({ ads = [], code, gameType }) {
+  const { ad, loop, onEnded } = useRotatingAd(ads);
   return (
     <div className="relative h-screen w-screen overflow-hidden bg-slate-950">
       {ad ? (
@@ -12,8 +15,9 @@ export default function StartupDisplay({ ad, code, gameType }) {
             className="absolute inset-0 h-full w-full object-cover animate-ad-fade"
             autoPlay
             muted
-            loop
+            loop={loop}
             playsInline
+            onEnded={loop ? undefined : onEnded}
           />
         ) : (
           <img

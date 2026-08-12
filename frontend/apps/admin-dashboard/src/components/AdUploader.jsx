@@ -10,13 +10,6 @@ const POSITION_LABELS = {
   LEFT: 'Left edge',
   RIGHT: 'Right edge',
 };
-const AD_FIELD_BY_POSITION = {
-  STARTUP: 'startupAdId',
-  TOP: 'topAdId',
-  BOTTOM: 'bottomAdId',
-  LEFT: 'leftAdId',
-  RIGHT: 'rightAdId',
-};
 
 const initialForm = {
   clientName: '',
@@ -24,10 +17,10 @@ const initialForm = {
   targetType: '',
   targetGroupId: '',
   targetScreenId: '',
-  slots: { STARTUP: '', TOP: '', BOTTOM: '', LEFT: '', RIGHT: '' },
+  slots: { STARTUP: [], TOP: [], BOTTOM: [], LEFT: [], RIGHT: [] },
 };
 
-export default function AdUploader({ ads = [], onUploaded }) {
+export default function AdUploader({ onUploaded }) {
   const toast = useToast();
   const fileInputRef = useRef(null);
   const uploadTargetRef = useRef(null);
@@ -59,8 +52,8 @@ export default function AdUploader({ ads = [], onUploaded }) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  function setSlot(position, adId) {
-    setForm((prev) => ({ ...prev, slots: { ...prev.slots, [position]: adId } }));
+  function addToSlot(position, ad) {
+    setForm((prev) => ({ ...prev, slots: { ...prev.slots, [position]: [...prev.slots[position], ad] } }));
   }
 
   function triggerUpload(position) {
@@ -70,31 +63,33 @@ export default function AdUploader({ ads = [], onUploaded }) {
   }
 
   async function handleFileSelected(e) {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files || []);
     const position = uploadTargetRef.current;
     e.target.value = '';
-    if (!file || !position) {
+    if (files.length === 0 || !position) {
       setUploadingSlot(null);
       return;
     }
     if (!form.title.trim()) {
-      setError('Enter a title before uploading a new advertisement file.');
+      setError('Enter a title before uploading advertisement files.');
       setUploadingSlot(null);
       return;
     }
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('title', form.title.trim());
-      if (form.clientName.trim()) formData.append('clientName', form.clientName.trim());
-      formData.append('mediaType', file.type.startsWith('video') ? 'VIDEO' : 'IMAGE');
-      formData.append('position', position);
-      formData.append('displayOrder', '0');
+      for (const file of files) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('title', form.title.trim());
+        if (form.clientName.trim()) formData.append('clientName', form.clientName.trim());
+        formData.append('mediaType', file.type.startsWith('video') ? 'VIDEO' : 'IMAGE');
+        formData.append('position', position);
+        formData.append('displayOrder', '0');
 
-      const created = await adApi.uploadAd(formData);
-      setSlot(position, String(created.id));
+        const created = await adApi.uploadAd(formData);
+        addToSlot(position, { id: created.id, title: created.title });
+      }
       onUploaded?.();
-      toast('Advertisement uploaded', { type: 'success' });
+      toast(files.length > 1 ? `${files.length} advertisements uploaded` : 'Advertisement uploaded', { type: 'success' });
     } catch (err) {
       toast(err.message || 'Upload failed', { type: 'error' });
     } finally {
@@ -136,11 +131,11 @@ export default function AdUploader({ ads = [], onUploaded }) {
       setError('Please choose a screen.');
       return;
     }
-    const slotEntries = POSITIONS
-      .filter((position) => form.slots[position])
-      .map((position) => [AD_FIELD_BY_POSITION[position], Number(form.slots[position])]);
-    if (slotEntries.length === 0) {
-      setError('Pick at least one advertisement slot to assign.');
+    const adEntries = POSITIONS.flatMap((position) =>
+      form.slots[position].map((ad) => ({ position, adId: ad.id }))
+    );
+    if (adEntries.length === 0) {
+      setError('Upload at least one advertisement to assign.');
       return;
     }
     if (targetScreens.length === 0) {
@@ -150,8 +145,10 @@ export default function AdUploader({ ads = [], onUploaded }) {
 
     setSubmitting(true);
     try {
-      const payload = Object.fromEntries(slotEntries);
-      await Promise.all(targetScreens.map((screen) => screenApi.updateScreen(screen.id, payload)));
+      const screenIds = targetScreens.map((screen) => screen.id);
+      await Promise.all(
+        adEntries.map(({ position, adId }) => screenApi.assignAd(screenIds, position, adId))
+      );
       toast(`Assigned to ${targetScreens.length} screen${targetScreens.length === 1 ? '' : 's'}`, { type: 'success' });
       setForm(initialForm);
       onUploaded?.();
@@ -163,11 +160,6 @@ export default function AdUploader({ ads = [], onUploaded }) {
     }
   }
 
-  function handleReset() {
-    setForm(initialForm);
-    setError('');
-  }
-
   return (
     <form onSubmit={handleSubmit} className="card space-y-4">
       <h3 className="text-sm font-semibold text-slate-900">Upload advertisement</h3>
@@ -176,6 +168,7 @@ export default function AdUploader({ ads = [], onUploaded }) {
         ref={fileInputRef}
         type="file"
         accept="image/*,video/*"
+        multiple
         className="hidden"
         onChange={handleFileSelected}
       />
@@ -254,62 +247,45 @@ export default function AdUploader({ ads = [], onUploaded }) {
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         {POSITIONS.map((position) => {
-          const choices = ads.filter((ad) => ad.position === position && ad.isActive !== false);
-          const selectedAd = form.slots[position];
+          const slotAds = form.slots[position];
           const isUploading = uploadingSlot === position;
           return (
-            <label key={position} className={position === 'STARTUP' ? 'block sm:col-span-2' : 'block'}>
+            <div key={position} className={position === 'STARTUP' ? 'block sm:col-span-2' : 'block'}>
               <span className="label">{POSITION_LABELS[position]}</span>
-              <div className="relative">
-                <select
-                  className="input min-w-0 appearance-none pr-16"
-                  value={selectedAd}
-                  disabled={isUploading}
-                  onChange={(e) => setSlot(position, e.target.value)}
-                >
-                  <option value="">No advertisement</option>
-                  {choices.map((ad) => <option key={ad.id} value={ad.id}>{ad.title}</option>)}
-                </select>
-                <div className="pointer-events-none absolute right-16 top-1/2 -translate-y-1/2 text-slate-400">⌄</div>
-                <div className="absolute right-1.5 top-1/2 flex -translate-y-1/2 gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setSlot(position, '')}
-                    disabled={!selectedAd || isUploading}
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-rose-600 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-30"
-                    aria-label={`Clear ${POSITION_LABELS[position]}`}
-                    title="Clear this slot"
-                  >
-                    −
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => triggerUpload(position)}
-                    disabled={isUploading}
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-indigo-600 hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-30"
-                    aria-label={`Upload a new ${POSITION_LABELS[position]}`}
-                    title="Upload a new advertisement"
-                  >
-                    +
-                  </button>
+              <div className="flex items-center gap-2 rounded-md border border-dashed border-slate-300 bg-slate-50 px-3 py-2">
+                <div className="flex-1 truncate text-sm">
+                  {isUploading ? (
+                    <span className="text-indigo-500">Uploading…</span>
+                  ) : slotAds.length > 0 ? (
+                    <span className="text-slate-700">
+                      {slotAds.length} ad{slotAds.length === 1 ? '' : 's'}: {slotAds.map((a) => a.title).join(', ')}
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">No advertisement uploaded</span>
+                  )}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => triggerUpload(position)}
+                  disabled={isUploading}
+                  className="btn-secondary whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {slotAds.length > 0 ? 'Add more' : 'Upload'}
+                </button>
               </div>
-              {isUploading && <p className="mt-1 text-xs text-indigo-500">Uploading…</p>}
-            </label>
+            </div>
           );
         })}
       </div>
+      <p className="text-xs text-slate-500">
+        Upload several photos or videos per slot to build a rotating playlist — they play one by one and repeat.
+      </p>
 
       {error && <p className="text-sm text-rose-600">{error}</p>}
 
-      <div className="flex gap-2">
-        <button type="button" className="btn-secondary flex-1" onClick={handleReset} disabled={submitting}>
-          Reset
-        </button>
-        <button type="submit" className="btn-primary flex-1" disabled={submitting}>
-          {submitting ? 'Assigning...' : 'Upload advertisement'}
-        </button>
-      </div>
+      <button type="submit" className="btn-primary w-full" disabled={submitting}>
+        {submitting ? 'Assigning...' : 'Upload advertisement'}
+      </button>
     </form>
   );
 }

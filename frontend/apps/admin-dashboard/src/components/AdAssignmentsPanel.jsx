@@ -3,11 +3,11 @@ import { screenApi } from '../lib/api.js';
 import { LoadingSpinner } from '@smartad/shared-ui';
 
 const COLUMNS = [
-  ['startupAd', 'Starting screen'],
-  ['topAd', 'Top edge'],
-  ['bottomAd', 'Bottom edge'],
-  ['leftAd', 'Left edge'],
-  ['rightAd', 'Right edge'],
+  ['startupAds', 'Starting screen'],
+  ['topAds', 'Top edge'],
+  ['bottomAds', 'Bottom edge'],
+  ['leftAds', 'Left edge'],
+  ['rightAds', 'Right edge'],
 ];
 
 export default function AdAssignmentsPanel() {
@@ -114,15 +114,22 @@ export default function AdAssignmentsPanel() {
                     <span className="text-xs text-slate-400">Ungrouped</span>
                   )}
                 </td>
-                {COLUMNS.map(([key]) => (
-                  <td key={key} className="px-4 py-3">
-                    {screen[key] ? (
-                      <span className="truncate text-slate-700" title={screen[key].title}>{screen[key].title}</span>
-                    ) : (
-                      <span className="text-xs text-slate-400">—</span>
-                    )}
-                  </td>
-                ))}
+                {COLUMNS.map(([key]) => {
+                  const list = screen[key] || [];
+                  return (
+                    <td key={key} className="px-4 py-3">
+                      {list.length === 0 ? (
+                        <span className="text-xs text-slate-400">—</span>
+                      ) : (
+                        <span className="truncate text-slate-700" title={list.map((ad) => ad.title).join(', ')}>
+                          {list.length > 1 && <span className="badge-indigo mr-1">{list.length}</span>}
+                          {list[0].title}
+                          {list.length > 1 ? ` +${list.length - 1} more` : ''}
+                        </span>
+                      )}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
             {filtered.length === 0 && (

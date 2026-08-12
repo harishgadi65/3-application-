@@ -54,21 +54,6 @@ public class Screen extends BaseEntity {
     @Column(name = "group_id")
     private Long groupId;
 
-    @Column(name = "startup_ad_id")
-    private Long startupAdId;
-
-    @Column(name = "top_ad_id")
-    private Long topAdId;
-
-    @Column(name = "bottom_ad_id")
-    private Long bottomAdId;
-
-    @Column(name = "left_ad_id")
-    private Long leftAdId;
-
-    @Column(name = "right_ad_id")
-    private Long rightAdId;
-
     @ElementCollection
     @CollectionTable(name = "screen_games", joinColumns = @JoinColumn(name = "screen_id"))
     @Column(name = "game_type")

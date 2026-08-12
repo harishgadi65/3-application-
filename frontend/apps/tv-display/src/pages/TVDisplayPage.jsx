@@ -25,7 +25,7 @@ export default function TVDisplayPage() {
   const { sessionCode: code } = useParams();
   const navigate = useNavigate();
   const { client, connected } = useStomp();
-  const { currentAdByPosition, startupAd } = useAdRotation();
+  const { adsByPosition } = useAdRotation();
   const returnToIdle = useCallback(() => navigate('/', { replace: true }), [navigate]);
 
   const [session, setSession] = useState(null);
@@ -188,19 +188,22 @@ export default function TVDisplayPage() {
   );
 
   // Sessions started from a real screen carry that screen's own Ads
-  // Controls assignments - use those directly instead of the generic
+  // Controls playlists - use those directly instead of the generic
   // global ad rotation, which has no idea which screen this is.
-  const screenAdByPosition = useMemo(() => {
+  const screenAdsByPosition = useMemo(() => {
     if (!session?.screenId) return null;
     return {
-      TOP: session.topAd || null,
-      BOTTOM: session.bottomAd || null,
-      LEFT: session.leftAd || null,
-      RIGHT: session.rightAd || null,
+      TOP: session.topAds || [],
+      BOTTOM: session.bottomAds || [],
+      LEFT: session.leftAds || [],
+      RIGHT: session.rightAds || [],
     };
   }, [session]);
-  const displayAdByPosition = screenAdByPosition || currentAdByPosition;
-  const displayStartupAd = session?.startupAd || startupAd;
+  const displayAdsByPosition = screenAdsByPosition || adsByPosition;
+  const fallbackStartupAds = adsByPosition.STARTUP.length
+    ? adsByPosition.STARTUP
+    : [...adsByPosition.TOP, ...adsByPosition.BOTTOM, ...adsByPosition.LEFT, ...adsByPosition.RIGHT];
+  const displayStartupAds = screenAdsByPosition ? (session.startupAds || []) : fallbackStartupAds;
 
   let content;
   if (!session && !loadError) {
@@ -243,12 +246,12 @@ export default function TVDisplayPage() {
 
   const isWaiting = !loadError && session && !['COUNTDOWN', 'PLAYING', 'FINISHED'].includes(phase);
   if (isWaiting && players.length === 0) {
-    return <StartupDisplay ad={displayStartupAd} code={code} gameType={gameTypeLabel} />;
+    return <StartupDisplay ads={displayStartupAds} code={code} gameType={gameTypeLabel} />;
   }
 
   return (
     <div className="relative h-full w-full">
-      <ScreenLayout currentAdByPosition={displayAdByPosition}>{content}</ScreenLayout>
+      <ScreenLayout adsByPosition={displayAdsByPosition}>{content}</ScreenLayout>
       <div className="absolute top-2 left-2 z-50 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold">
         <span className={`h-2 w-2 rounded-full ${connected ? 'bg-emerald-400' : 'bg-red-500 animate-pulse'}`} />
         <span className={connected ? 'text-emerald-300' : 'text-red-300'}>{connected ? 'Live OK' : 'Reconnecting…'}</span>
