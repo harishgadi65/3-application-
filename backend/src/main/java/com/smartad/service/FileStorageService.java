@@ -46,6 +46,10 @@ public class FileStorageService {
         return upload(file, "game-packages");
     }
 
+    public String uploadCouponImage(MultipartFile file) {
+        return upload(file, "coupons");
+    }
+
     private String upload(MultipartFile file, String prefix) {
         String extension = extractExtension(file.getOriginalFilename());
         String key = prefix + "/" + UUID.randomUUID() + (extension.isEmpty() ? "" : "." + extension);

@@ -6,6 +6,7 @@ const navItems = [
   { to: '/advertisements', label: 'Advertisements', icon: AdsIcon },
   { to: '/advertisements/screens', label: 'Screens', icon: ScreensIcon, child: true },
   { to: '/games', label: 'Games', icon: GamesIcon },
+  { to: '/coupons', label: 'Coupons', icon: CouponsIcon },
   { to: '/config', label: 'Config', icon: ConfigIcon },
 ];
 
@@ -107,6 +108,15 @@ function GamesIcon(props) {
       <path strokeLinecap="round" d="M8 11v4M6 13h4" />
       <circle cx="16" cy="12" r="1" fill="currentColor" stroke="none" />
       <circle cx="18" cy="15" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function CouponsIcon(props) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 8a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-2a2 2 0 0 0 0-4V8Z" />
+      <path strokeLinecap="round" d="M9 6v12" strokeDasharray="2 2" />
     </svg>
   );
 }

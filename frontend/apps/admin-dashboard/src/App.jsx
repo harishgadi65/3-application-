@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import AdvertisementsPage from './pages/AdvertisementsPage.jsx';
 import GamesPage from './pages/GamesPage.jsx';
+import CouponsPage from './pages/CouponsPage.jsx';
 import ConfigPage from './pages/ConfigPage.jsx';
 
 export default function App() {
@@ -29,6 +30,7 @@ export default function App() {
                 <Route path="/advertisements" element={<AdvertisementsPage />} />
                 <Route path="/advertisements/screens" element={<AdvertisementsPage initialTab="screens" />} />
                 <Route path="/games" element={<GamesPage />} />
+                <Route path="/coupons" element={<CouponsPage />} />
                 <Route path="/config" element={<ConfigPage />} />
               </Route>
 
