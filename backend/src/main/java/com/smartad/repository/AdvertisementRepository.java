@@ -7,7 +7,11 @@ import java.util.List;
 
 public interface AdvertisementRepository extends JpaRepository<Advertisement, Long> {
 
-    List<Advertisement> findByIsActiveTrueOrderByDisplayOrderAsc();
+    List<Advertisement> findByIsActiveTrueAndDeletedAtIsNullOrderByDisplayOrderAsc();
 
-    List<Advertisement> findAllByOrderByDisplayOrderAsc();
+    List<Advertisement> findAllByDeletedAtIsNullOrderByDisplayOrderAsc();
+
+    List<Advertisement> findAllByDeletedAtIsNotNullOrderByDisplayOrderAsc();
+
+    List<Advertisement> findByClientNameAndDeletedAtIsNull(String clientName);
 }

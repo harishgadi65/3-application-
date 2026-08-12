@@ -57,7 +57,9 @@ public class SecurityConfig {
 
                         // Admin-only management
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/coupons/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/ads/all").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/ads/trash").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/ads/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/ads/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/ads/**").hasAuthority("ROLE_ADMIN")

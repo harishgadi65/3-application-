@@ -24,4 +24,5 @@ public class AdvertisementResponse {
     private Boolean isActive;
     private Integer displayOrder;
     private LocalDateTime createdAt;
+    private LocalDateTime deletedAt;
 }

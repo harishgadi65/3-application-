@@ -16,4 +16,6 @@ public interface ScreenAdAssignmentRepository extends JpaRepository<ScreenAdAssi
     boolean existsByScreenIdAndPositionAndAdvertisementId(Long screenId, String position, Long advertisementId);
 
     void deleteByScreenIdAndPositionAndAdvertisementId(Long screenId, String position, Long advertisementId);
+
+    void deleteByAdvertisementId(Long advertisementId);
 }

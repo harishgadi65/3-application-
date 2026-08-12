@@ -52,6 +52,10 @@ export default function AdUploader({ onUploaded }) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
+  function updateTargetType(targetType) {
+    setForm((prev) => ({ ...prev, targetType, targetGroupId: '', targetScreenId: '' }));
+  }
+
   function addToSlot(position, ad) {
     setForm((prev) => ({ ...prev, slots: { ...prev.slots, [position]: [...prev.slots[position], ad] } }));
   }
@@ -98,14 +102,13 @@ export default function AdUploader({ onUploaded }) {
     }
   }
 
+  const ungroupedScreens = useMemo(() => screens.filter((s) => !s.groupId), [screens]);
+
   const targetScreens = useMemo(() => {
     if (form.targetType === 'GROUP') {
       return screens.filter((s) => form.targetGroupId && String(s.groupId) === String(form.targetGroupId));
     }
-    if (form.targetType === 'UNGROUPED') {
-      return screens.filter((s) => !s.groupId);
-    }
-    if (form.targetType === 'SCREEN') {
+    if (form.targetType === 'UNGROUPED' || form.targetType === 'SCREEN') {
       return screens.filter((s) => form.targetScreenId && String(s.id) === String(form.targetScreenId));
     }
     return [];
@@ -127,7 +130,7 @@ export default function AdUploader({ onUploaded }) {
       setError('Please choose a screen group.');
       return;
     }
-    if (form.targetType === 'SCREEN' && !form.targetScreenId) {
+    if ((form.targetType === 'SCREEN' || form.targetType === 'UNGROUPED') && !form.targetScreenId) {
       setError('Please choose a screen.');
       return;
     }
@@ -204,7 +207,7 @@ export default function AdUploader({ onUploaded }) {
           id="ad-target-type"
           className="input"
           value={form.targetType}
-          onChange={(e) => updateField('targetType', e.target.value)}
+          onChange={(e) => updateTargetType(e.target.value)}
         >
           <option value="">Select target type</option>
           <option value="GROUP">Screen group</option>
@@ -234,6 +237,21 @@ export default function AdUploader({ onUploaded }) {
         >
           <option value="">Select screen</option>
           {screens.map((screen) => (
+            <option key={screen.id} value={screen.id}>#{screen.screenNo} — {screen.displayCode}</option>
+          ))}
+        </select>
+      )}
+
+      {form.targetType === 'UNGROUPED' && (
+        <select
+          className="input"
+          value={form.targetScreenId}
+          onChange={(e) => updateField('targetScreenId', e.target.value)}
+        >
+          <option value="">
+            {ungroupedScreens.length === 0 ? 'No ungrouped screens' : 'Select screen'}
+          </option>
+          {ungroupedScreens.map((screen) => (
             <option key={screen.id} value={screen.id}>#{screen.screenNo} — {screen.displayCode}</option>
           ))}
         </select>

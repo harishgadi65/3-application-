@@ -50,6 +50,11 @@ public class AdvertisementController {
         return ResponseEntity.ok(ApiResponse.success(advertisementService.listAll()));
     }
 
+    @GetMapping("/trash")
+    public ResponseEntity<ApiResponse<List<AdvertisementResponse>>> listTrash() {
+        return ResponseEntity.ok(ApiResponse.success(advertisementService.listTrash()));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<AdvertisementResponse>> update(
             @PathVariable Long id,
@@ -63,9 +68,26 @@ public class AdvertisementController {
         return ResponseEntity.ok(ApiResponse.success("Advertisement updated", response));
     }
 
+    @DeleteMapping("/by-client")
+    public ResponseEntity<ApiResponse<Integer>> deleteAllByClient(@RequestParam String clientName) {
+        int count = advertisementService.deleteAllByClient(clientName);
+        return ResponseEntity.ok(ApiResponse.success(count + " advertisement(s) moved to trash", count));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
         advertisementService.delete(id);
-        return ResponseEntity.ok(ApiResponse.success("Advertisement deleted", null));
+        return ResponseEntity.ok(ApiResponse.success("Advertisement moved to trash", null));
+    }
+
+    @PostMapping("/{id}/restore")
+    public ResponseEntity<ApiResponse<AdvertisementResponse>> restore(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Advertisement restored", advertisementService.restore(id)));
+    }
+
+    @DeleteMapping("/{id}/permanent")
+    public ResponseEntity<ApiResponse<Void>> permanentlyDelete(@PathVariable Long id) {
+        advertisementService.permanentlyDelete(id);
+        return ResponseEntity.ok(ApiResponse.success("Advertisement permanently deleted", null));
     }
 }

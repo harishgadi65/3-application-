@@ -6,6 +6,7 @@ import * as gameApi from './gameApi.js';
 import * as adApi from './adApi.js';
 import * as playerApi from './playerApi.js';
 import * as screenApi from './screenApi.js';
+import * as couponApi from './couponApi.js';
 
 export * from './authApi.js';
 export * from './sessionApi.js';
@@ -13,7 +14,8 @@ export * from './gameApi.js';
 export * from './adApi.js';
 export * from './playerApi.js';
 export * from './screenApi.js';
+export * from './couponApi.js';
 
 // Namespaced re-exports (authApi.login(...), sessionApi.createSession(...), etc.)
 // alongside the flat named exports above — both styles are supported.
-export { authApi, sessionApi, gameApi, adApi, playerApi, screenApi };
+export { authApi, sessionApi, gameApi, adApi, playerApi, screenApi, couponApi };

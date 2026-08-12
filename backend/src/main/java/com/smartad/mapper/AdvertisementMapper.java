@@ -28,6 +28,7 @@ public class AdvertisementMapper {
                 .isActive(ad.getIsActive())
                 .displayOrder(ad.getDisplayOrder())
                 .createdAt(ad.getCreatedAt())
+                .deletedAt(ad.getDeletedAt())
                 .build();
     }
 

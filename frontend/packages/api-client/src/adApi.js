@@ -24,3 +24,20 @@ export async function deleteAd(id) {
 export async function updateAd(id, payload) {
   return axiosClient.put(`/ads/${id}`, null, { params: payload });
 }
+
+export async function listAdsTrash() {
+  return axiosClient.get('/ads/trash');
+}
+
+export async function restoreAd(id) {
+  return axiosClient.post(`/ads/${id}/restore`);
+}
+
+export async function permanentlyDeleteAd(id) {
+  return axiosClient.delete(`/ads/${id}/permanent`);
+}
+
+/** Trashes every active ad belonging to one client at once. */
+export async function deleteAdsByClient(clientName) {
+  return axiosClient.delete('/ads/by-client', { params: { clientName } });
+}

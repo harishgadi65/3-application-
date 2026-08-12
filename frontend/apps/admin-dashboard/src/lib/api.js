@@ -54,6 +54,10 @@ export const adApi = {
   listAllAds: apiClient.listAllAds,
   deleteAd: apiClient.deleteAd,
   updateAd: apiClient.updateAd,
+  listTrash: apiClient.listAdsTrash,
+  restoreAd: apiClient.restoreAd,
+  permanentlyDeleteAd: apiClient.permanentlyDeleteAd,
+  deleteAdsByClient: apiClient.deleteAdsByClient,
 };
 
 export const playerApi = {
@@ -70,4 +74,18 @@ export const screenApi = {
   renameGroup: apiClient.renameScreenGroup,
   assignAd: apiClient.assignScreenAd,
   unassignAd: apiClient.unassignScreenAd,
+};
+
+export const couponApi = {
+  uploadCoupon: apiClient.uploadCoupon,
+  listCoupons: apiClient.listCoupons,
+  listAllCoupons: apiClient.listAllCoupons,
+  deleteCoupon: apiClient.deleteCoupon,
+  listTrash: apiClient.listCouponsTrash,
+  restoreCoupon: apiClient.restoreCoupon,
+  permanentlyDeleteCoupon: apiClient.permanentlyDeleteCoupon,
+  deleteCouponsByClient: apiClient.deleteCouponsByClient,
+  assignCoupon: apiClient.assignCoupon,
+  unassignCoupon: apiClient.unassignCoupon,
+  listAssignments: apiClient.listCouponAssignments,
 };

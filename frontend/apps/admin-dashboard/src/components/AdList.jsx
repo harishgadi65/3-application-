@@ -47,7 +47,7 @@ function AdCard({ ad, onChanged }) {
     setDeleting(true);
     try {
       await adApi.deleteAd(ad.id);
-      toast('Advertisement deleted', { type: 'success' });
+      toast('Advertisement moved to trash', { type: 'success' });
       setConfirmingDelete(false);
       onChanged?.();
     } catch (err) {
@@ -178,8 +178,8 @@ function AdCard({ ad, onChanged }) {
 
       <ConfirmDialog
         open={confirmingDelete}
-        title="Delete this advertisement?"
-        message={`"${ad.title}" will be permanently deleted. This can't be undone.`}
+        title="Move this advertisement to trash?"
+        message={`"${ad.title}" will stop playing everywhere and move to the Trash tab, where it can be restored.`}
         confirmLabel="Delete"
         danger
         busy={deleting}
