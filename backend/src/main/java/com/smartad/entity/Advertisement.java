@@ -28,6 +28,10 @@ public class Advertisement extends BaseEntity {
     @Column(nullable = false, length = 255)
     private String title;
 
+    /** Optional sponsor/brand name shown alongside the title in the admin UI. */
+    @Column(name = "client_name", length = 255)
+    private String clientName;
+
     @Column(name = "media_url", nullable = false, length = 512)
     private String mediaUrl;
 

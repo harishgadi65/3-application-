@@ -22,6 +22,9 @@ public class UploadAdRequest {
     @NotBlank(message = "title is required")
     private String title;
 
+    /** Optional sponsor/brand name. */
+    private String clientName;
+
     /** "IMAGE" or "VIDEO". */
     @NotBlank(message = "mediaType is required")
     private String mediaType;

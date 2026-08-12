@@ -4,6 +4,7 @@ import { LoadingSpinner } from '@smartad/shared-ui';
 import AdUploader from '../components/AdUploader.jsx';
 import AdList from '../components/AdList.jsx';
 import ScreensPanel from '../components/ScreensPanel.jsx';
+import AdAssignmentsPanel from '../components/AdAssignmentsPanel.jsx';
 
 export default function AdvertisementsPage({ initialTab = 'advertisements' }) {
   const [ads, setAds] = useState([]);
@@ -61,11 +62,18 @@ export default function AdvertisementsPage({ initialTab = 'advertisements' }) {
         >
           Screens
         </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('assigned')}
+          className={`border-b-2 px-5 py-3 text-sm font-semibold ${activeTab === 'assigned' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+        >
+          Assigned ads
+        </button>
       </div>
 
-      {activeTab === 'advertisements' ? <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      {activeTab === 'advertisements' && <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1">
-          <AdUploader onUploaded={loadAds} />
+          <AdUploader ads={ads} onUploaded={loadAds} />
         </div>
         <div className="lg:col-span-2">
           {loading ? (
@@ -78,7 +86,9 @@ export default function AdvertisementsPage({ initialTab = 'advertisements' }) {
             <AdList ads={ads} onChanged={loadAds} />
           )}
         </div>
-      </div> : <ScreensPanel ads={ads} games={games} onAdsChanged={loadAds} />}
+      </div>}
+      {activeTab === 'screens' && <ScreensPanel ads={ads} games={games} onAdsChanged={loadAds} />}
+      {activeTab === 'assigned' && <AdAssignmentsPanel />}
     </div>
   );
 }

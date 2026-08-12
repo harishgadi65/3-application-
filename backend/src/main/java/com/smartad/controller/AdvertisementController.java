@@ -30,11 +30,12 @@ public class AdvertisementController {
     public ResponseEntity<ApiResponse<AdvertisementResponse>> upload(
             @RequestPart("file") MultipartFile file,
             @RequestParam("title") String title,
+            @RequestParam(value = "clientName", required = false) String clientName,
             @RequestParam("mediaType") String mediaType,
             @RequestParam("position") String position,
             @RequestParam("displayOrder") Integer displayOrder) {
 
-        UploadAdRequest request = new UploadAdRequest(title, mediaType, position, displayOrder, file);
+        UploadAdRequest request = new UploadAdRequest(title, clientName, mediaType, position, displayOrder, file);
         AdvertisementResponse response = advertisementService.upload(request);
         return ResponseEntity.ok(ApiResponse.success("Advertisement uploaded", response));
     }
@@ -53,11 +54,12 @@ public class AdvertisementController {
     public ResponseEntity<ApiResponse<AdvertisementResponse>> update(
             @PathVariable Long id,
             @RequestParam(value = "title", required = false) String title,
+            @RequestParam(value = "clientName", required = false) String clientName,
             @RequestParam(value = "position", required = false) String position,
             @RequestParam(value = "displayOrder", required = false) Integer displayOrder,
             @RequestParam(value = "isActive", required = false) Boolean isActive) {
 
-        AdvertisementResponse response = advertisementService.update(id, title, position, displayOrder, isActive);
+        AdvertisementResponse response = advertisementService.update(id, title, clientName, position, displayOrder, isActive);
         return ResponseEntity.ok(ApiResponse.success("Advertisement updated", response));
     }
 

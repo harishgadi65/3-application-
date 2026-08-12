@@ -17,6 +17,7 @@ public class AdvertisementResponse {
 
     private Long id;
     private String title;
+    private String clientName;
     private String mediaUrl;
     private String mediaType;
     private String position;

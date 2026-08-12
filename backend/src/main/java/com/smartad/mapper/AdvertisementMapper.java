@@ -21,6 +21,7 @@ public class AdvertisementMapper {
         return AdvertisementResponse.builder()
                 .id(ad.getId())
                 .title(ad.getTitle())
+                .clientName(ad.getClientName())
                 .mediaUrl(toPublicUrl(ad.getMediaUrl()))
                 .mediaType(ad.getMediaType())
                 .position(ad.getPosition())

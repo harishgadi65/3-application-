@@ -26,6 +26,7 @@ public class AdvertisementService {
 
         Advertisement ad = Advertisement.builder()
                 .title(request.getTitle())
+                .clientName(request.getClientName())
                 .mediaUrl(mediaUrl)
                 .mediaType(request.getMediaType().toUpperCase())
                 .position(request.getPosition().toUpperCase())
@@ -50,12 +51,15 @@ public class AdvertisementService {
     }
 
     @Transactional
-    public AdvertisementResponse update(Long id, String title, String position, Integer displayOrder, Boolean isActive) {
+    public AdvertisementResponse update(Long id, String title, String clientName, String position, Integer displayOrder, Boolean isActive) {
         Advertisement ad = advertisementRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Advertisement not found: " + id));
 
         if (title != null) {
             ad.setTitle(title);
+        }
+        if (clientName != null) {
+            ad.setClientName(clientName);
         }
         if (position != null) {
             ad.setPosition(position.toUpperCase());

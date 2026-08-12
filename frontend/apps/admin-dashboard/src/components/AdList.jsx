@@ -36,6 +36,7 @@ function AdCard({ ad, onChanged }) {
   const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [position, setPosition] = useState(ad.position);
+  const [clientName, setClientName] = useState(ad.clientName || '');
   const [displayOrder, setDisplayOrder] = useState(ad.displayOrder ?? 0);
   const [isActive, setIsActive] = useState(ad.isActive ?? true);
   const [saving, setSaving] = useState(false);
@@ -61,6 +62,7 @@ function AdCard({ ad, onChanged }) {
     try {
       await adApi.updateAd(ad.id, {
         position,
+        clientName,
         displayOrder: Number(displayOrder),
         isActive,
       });
@@ -90,6 +92,7 @@ function AdCard({ ad, onChanged }) {
 
       <div>
         <p className="truncate font-medium text-slate-900">{ad.title}</p>
+        {ad.clientName && <p className="truncate text-xs text-slate-500">{ad.clientName}</p>}
         <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
           <span className="badge-slate">{ad.mediaType}</span>
           <span className="badge-indigo">{POSITION_LABELS[ad.position] || ad.position}</span>
@@ -99,6 +102,13 @@ function AdCard({ ad, onChanged }) {
 
       {editing ? (
         <div className="space-y-2 border-t border-slate-100 pt-3">
+          <input
+            type="text"
+            className="input"
+            value={clientName}
+            onChange={(e) => setClientName(e.target.value)}
+            placeholder="Client name (optional)"
+          />
           <div className="grid grid-cols-2 gap-2">
             <select
               className="input"
