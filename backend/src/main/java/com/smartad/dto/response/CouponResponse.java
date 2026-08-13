@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -24,4 +25,19 @@ public class CouponResponse {
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime deletedAt;
+
+    /** Only populated in the trash listing - which screens/games this coupon
+     * was assigned to before it was trashed, so the trash tab can show that
+     * context and restoring puts it right back without re-assigning by hand. */
+    private List<AssignmentRef> assignments;
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class AssignmentRef {
+        private Long screenId;
+        private String gameType;
+    }
 }

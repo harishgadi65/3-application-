@@ -1,9 +1,33 @@
-import { useState } from 'react';
-import { couponApi } from '../lib/api.js';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { couponApi, screenApi, gameApi } from '../lib/api.js';
 import { useToast } from '@smartad/shared-ui';
 import ConfirmDialog from './ConfirmDialog.jsx';
 
 export default function CouponTrashList({ coupons = [], onChanged }) {
+  const toast = useToast();
+  const [screens, setScreens] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [games, setGames] = useState([]);
+
+  const loadTargets = useCallback(async () => {
+    try {
+      const [screenList, groupList, gameList] = await Promise.all([
+        screenApi.listScreens(),
+        screenApi.listGroups(),
+        gameApi.listGames(),
+      ]);
+      setScreens(Array.isArray(screenList) ? screenList : []);
+      setGroups(Array.isArray(groupList) ? groupList : []);
+      setGames(Array.isArray(gameList) ? gameList : []);
+    } catch (err) {
+      toast(err.message || 'Failed to load screens/games', { type: 'error' });
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    loadTargets();
+  }, [loadTargets]);
+
   if (coupons.length === 0) {
     return (
       <div className="card">
@@ -15,17 +39,38 @@ export default function CouponTrashList({ coupons = [], onChanged }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {coupons.map((coupon) => (
-        <TrashedCouponCard key={coupon.id} coupon={coupon} onChanged={onChanged} />
+        <TrashedCouponCard key={coupon.id} coupon={coupon} screens={screens} groups={groups} games={games} onChanged={onChanged} />
       ))}
     </div>
   );
 }
 
-function TrashedCouponCard({ coupon, onChanged }) {
+/** Collapses this coupon's old (screen, game) assignments into readable,
+ * deduped labels - e.g. every screen in "Area 1" offering SNAKE collapses
+ * into one "Area 1 · Snake" chip instead of one per screen. */
+function useAssignmentLabels(assignments, screens, groups, games) {
+  return useMemo(() => {
+    const labels = new Set();
+    (assignments || []).forEach(({ screenId, gameType }) => {
+      const screen = screens.find((s) => String(s.id) === String(screenId));
+      const gameLabel = games.find((g) => g.gameType === gameType)?.displayName || gameType;
+      const target = screen?.groupId
+        ? groups.find((g) => String(g.id) === String(screen.groupId))?.name || 'Group'
+        : screen
+          ? `#${screen.screenNo} ${screen.displayCode}`
+          : `Screen ${screenId}`;
+      labels.add(`${target} · ${gameLabel}`);
+    });
+    return Array.from(labels);
+  }, [assignments, screens, groups, games]);
+}
+
+function TrashedCouponCard({ coupon, screens, groups, games, onChanged }) {
   const toast = useToast();
   const [restoring, setRestoring] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmingPurge, setConfirmingPurge] = useState(false);
+  const assignmentLabels = useAssignmentLabels(coupon.assignments, screens, groups, games);
 
   async function handleRestore() {
     setRestoring(true);
@@ -75,6 +120,17 @@ function TrashedCouponCard({ coupon, onChanged }) {
         </div>
       </div>
 
+      {assignmentLabels.length > 0 && (
+        <div className="border-t border-slate-100 pt-2">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Was assigned to</p>
+          <div className="flex flex-wrap gap-1">
+            {assignmentLabels.map((label) => (
+              <span key={label} className="badge-indigo">{label}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-2 border-t border-slate-100 pt-3">
         <button
           type="button"
@@ -97,7 +153,7 @@ function TrashedCouponCard({ coupon, onChanged }) {
       <ConfirmDialog
         open={confirmingPurge}
         title="Permanently delete this coupon?"
-        message={`"${coupon.title}" will be removed for good. This can't be undone.`}
+        message={`"${coupon.title}" will be removed for good, including its old assignment. This can't be undone.`}
         confirmLabel="Delete forever"
         danger
         busy={deleting}

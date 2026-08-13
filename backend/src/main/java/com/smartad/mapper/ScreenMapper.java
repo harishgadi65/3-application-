@@ -66,12 +66,16 @@ public class ScreenMapper {
                 .build();
     }
 
+    /** Trashed ads keep their assignment rows (so restoring puts them right
+     * back where they were) but must not actually play - excluding them here
+     * drops them out of every resolved playlist below. */
     private Map<Long, AdvertisementResponse> resolveAdsById(List<ScreenAdAssignment> assignments) {
         List<Long> adIds = assignments.stream().map(ScreenAdAssignment::getAdvertisementId).distinct().toList();
         if (adIds.isEmpty()) {
             return Map.of();
         }
         return advertisementRepository.findAllById(adIds).stream()
+                .filter(ad -> ad.getDeletedAt() == null)
                 .collect(Collectors.toMap(Advertisement::getId, advertisementMapper::toResponse));
     }
 

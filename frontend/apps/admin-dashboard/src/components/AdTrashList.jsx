@@ -1,9 +1,38 @@
-import { useState } from 'react';
-import { adApi } from '../lib/api.js';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { adApi, screenApi } from '../lib/api.js';
 import { useToast } from '@smartad/shared-ui';
 import ConfirmDialog from './ConfirmDialog.jsx';
 
+const POSITION_LABELS = {
+  STARTUP: 'Starting screen',
+  TOP: 'Top edge',
+  BOTTOM: 'Bottom edge',
+  LEFT: 'Left edge',
+  RIGHT: 'Right edge',
+};
+
 export default function AdTrashList({ ads = [], onChanged }) {
+  const toast = useToast();
+  const [screens, setScreens] = useState([]);
+  const [groups, setGroups] = useState([]);
+
+  const loadTargets = useCallback(async () => {
+    try {
+      const [screenList, groupList] = await Promise.all([
+        screenApi.listScreens(),
+        screenApi.listGroups(),
+      ]);
+      setScreens(Array.isArray(screenList) ? screenList : []);
+      setGroups(Array.isArray(groupList) ? groupList : []);
+    } catch (err) {
+      toast(err.message || 'Failed to load screens', { type: 'error' });
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    loadTargets();
+  }, [loadTargets]);
+
   if (ads.length === 0) {
     return (
       <div className="card">
@@ -15,17 +44,38 @@ export default function AdTrashList({ ads = [], onChanged }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {ads.map((ad) => (
-        <TrashedAdCard key={ad.id} ad={ad} onChanged={onChanged} />
+        <TrashedAdCard key={ad.id} ad={ad} screens={screens} groups={groups} onChanged={onChanged} />
       ))}
     </div>
   );
 }
 
-function TrashedAdCard({ ad, onChanged }) {
+/** Collapses this ad's old (screen, position) assignments into readable,
+ * deduped labels - e.g. every screen in "Area 1" with a Top-edge assignment
+ * collapses into one "Area 1 · Top edge" chip instead of one per screen. */
+function useAssignmentLabels(assignments, screens, groups) {
+  return useMemo(() => {
+    const labels = new Set();
+    (assignments || []).forEach(({ screenId, position }) => {
+      const screen = screens.find((s) => String(s.id) === String(screenId));
+      const positionLabel = POSITION_LABELS[position] || position;
+      const target = screen?.groupId
+        ? groups.find((g) => String(g.id) === String(screen.groupId))?.name || 'Group'
+        : screen
+          ? `#${screen.screenNo} ${screen.displayCode}`
+          : `Screen ${screenId}`;
+      labels.add(`${target} · ${positionLabel}`);
+    });
+    return Array.from(labels);
+  }, [assignments, screens, groups]);
+}
+
+function TrashedAdCard({ ad, screens, groups, onChanged }) {
   const toast = useToast();
   const [restoring, setRestoring] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmingPurge, setConfirmingPurge] = useState(false);
+  const assignmentLabels = useAssignmentLabels(ad.assignments, screens, groups);
 
   async function handleRestore() {
     setRestoring(true);
@@ -73,6 +123,17 @@ function TrashedAdCard({ ad, onChanged }) {
         </div>
       </div>
 
+      {assignmentLabels.length > 0 && (
+        <div className="border-t border-slate-100 pt-2">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Was playing on</p>
+          <div className="flex flex-wrap gap-1">
+            {assignmentLabels.map((label) => (
+              <span key={label} className="badge-indigo">{label}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-2 border-t border-slate-100 pt-3">
         <button
           type="button"
@@ -95,7 +156,7 @@ function TrashedAdCard({ ad, onChanged }) {
       <ConfirmDialog
         open={confirmingPurge}
         title="Permanently delete this advertisement?"
-        message={`"${ad.title}" will be removed for good. This can't be undone.`}
+        message={`"${ad.title}" will be removed for good, including its old screen placement. This can't be undone.`}
         confirmLabel="Delete forever"
         danger
         busy={deleting}

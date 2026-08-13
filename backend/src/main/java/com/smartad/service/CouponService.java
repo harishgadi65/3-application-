@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -60,20 +61,41 @@ public class CouponService {
                 .toList();
     }
 
+    /** Trashed coupons keep their old game/screen assignments around (see
+     * {@code delete}), so this attaches that "was assigned here" context for
+     * the trash tab. */
     public List<CouponResponse> listTrash() {
-        return couponRepository.findAllByDeletedAtIsNotNullOrderByCreatedAtDesc().stream()
-                .map(couponMapper::toResponse)
+        List<Coupon> trashed = couponRepository.findAllByDeletedAtIsNotNullOrderByCreatedAtDesc();
+        if (trashed.isEmpty()) {
+            return List.of();
+        }
+        List<Long> ids = trashed.stream().map(Coupon::getId).toList();
+        Map<Long, List<CouponAssignment>> assignmentsByCoupon = couponAssignmentRepository.findByCouponIdIn(ids).stream()
+                .collect(Collectors.groupingBy(CouponAssignment::getCouponId));
+
+        return trashed.stream()
+                .map(coupon -> {
+                    CouponResponse response = couponMapper.toResponse(coupon);
+                    response.setAssignments(assignmentsByCoupon.getOrDefault(coupon.getId(), List.of()).stream()
+                            .map(a -> CouponResponse.AssignmentRef.builder()
+                                    .screenId(a.getScreenId())
+                                    .gameType(a.getGameType())
+                                    .build())
+                            .toList());
+                    return response;
+                })
                 .toList();
     }
 
-    /** Moves a coupon to the trash (soft delete) and pulls it out of every
-     * game/screen it was assigned to immediately. */
+    /** Moves a coupon to the trash (soft delete). Its game/screen assignments
+     * are kept as-is (not deleted) so restoring puts it right back where it
+     * was - {@code listAssignments} excludes trashed coupons, so it stops
+     * being offered immediately without losing that placement. */
     @Transactional
     public void delete(Long id) {
         Coupon coupon = findActiveOrThrow(id);
         coupon.setDeletedAt(LocalDateTime.now());
         couponRepository.save(coupon);
-        couponAssignmentRepository.deleteByCouponId(id);
     }
 
     /** Trashes every active coupon belonging to one client at once. */
@@ -83,7 +105,6 @@ public class CouponService {
         LocalDateTime now = LocalDateTime.now();
         for (Coupon coupon : coupons) {
             coupon.setDeletedAt(now);
-            couponAssignmentRepository.deleteByCouponId(coupon.getId());
         }
         couponRepository.saveAll(coupons);
         return coupons.size();
@@ -150,7 +171,8 @@ public class CouponService {
         }
         List<Long> couponIds = assignments.stream().map(CouponAssignment::getCouponId).distinct().toList();
         Map<Long, CouponResponse> couponsById = couponRepository.findAllById(couponIds).stream()
-                .collect(java.util.stream.Collectors.toMap(Coupon::getId, couponMapper::toResponse));
+                .filter(c -> c.getDeletedAt() == null)
+                .collect(Collectors.toMap(Coupon::getId, couponMapper::toResponse));
 
         return assignments.stream()
                 .map(a -> CouponAssignmentResponse.builder()

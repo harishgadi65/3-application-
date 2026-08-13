@@ -17,5 +17,5 @@ public interface ScreenAdAssignmentRepository extends JpaRepository<ScreenAdAssi
 
     void deleteByScreenIdAndPositionAndAdvertisementId(Long screenId, String position, Long advertisementId);
 
-    void deleteByAdvertisementId(Long advertisementId);
+    List<ScreenAdAssignment> findByAdvertisementIdIn(List<Long> advertisementIds);
 }

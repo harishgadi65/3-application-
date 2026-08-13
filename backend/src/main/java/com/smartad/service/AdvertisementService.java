@@ -3,6 +3,7 @@ package com.smartad.service;
 import com.smartad.dto.request.UploadAdRequest;
 import com.smartad.dto.response.AdvertisementResponse;
 import com.smartad.entity.Advertisement;
+import com.smartad.entity.ScreenAdAssignment;
 import com.smartad.exception.ResourceNotFoundException;
 import com.smartad.mapper.AdvertisementMapper;
 import com.smartad.repository.AdvertisementRepository;
@@ -13,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -53,9 +56,28 @@ public class AdvertisementService {
                 .toList();
     }
 
+    /** Trashed ads keep their old screen assignments around (see {@code delete}),
+     * so this attaches that "was playing here" context for the trash tab. */
     public List<AdvertisementResponse> listTrash() {
-        return advertisementRepository.findAllByDeletedAtIsNotNullOrderByDisplayOrderAsc().stream()
-                .map(advertisementMapper::toResponse)
+        List<Advertisement> trashed = advertisementRepository.findAllByDeletedAtIsNotNullOrderByDisplayOrderAsc();
+        if (trashed.isEmpty()) {
+            return List.of();
+        }
+        List<Long> ids = trashed.stream().map(Advertisement::getId).toList();
+        Map<Long, List<ScreenAdAssignment>> assignmentsByAd = screenAdAssignmentRepository.findByAdvertisementIdIn(ids).stream()
+                .collect(Collectors.groupingBy(ScreenAdAssignment::getAdvertisementId));
+
+        return trashed.stream()
+                .map(ad -> {
+                    AdvertisementResponse response = advertisementMapper.toResponse(ad);
+                    response.setAssignments(assignmentsByAd.getOrDefault(ad.getId(), List.of()).stream()
+                            .map(a -> AdvertisementResponse.AssignmentRef.builder()
+                                    .screenId(a.getScreenId())
+                                    .position(a.getPosition())
+                                    .build())
+                            .toList());
+                    return response;
+                })
                 .toList();
     }
 
@@ -83,15 +105,15 @@ public class AdvertisementService {
         return advertisementMapper.toResponse(ad);
     }
 
-    /** Moves an ad to the trash (soft delete) and pulls it out of every
-     * screen's rotation immediately, rather than leaving it silently
-     * playing somewhere it can no longer be managed. */
+    /** Moves an ad to the trash (soft delete). Its screen assignments are
+     * kept as-is (not deleted) so restoring puts it right back where it was -
+     * {@code ScreenMapper} excludes trashed ads from resolved playlists, so
+     * it stops playing immediately without losing that placement. */
     @Transactional
     public void delete(Long id) {
         Advertisement ad = findActiveOrThrow(id);
         ad.setDeletedAt(LocalDateTime.now());
         advertisementRepository.save(ad);
-        screenAdAssignmentRepository.deleteByAdvertisementId(id);
     }
 
     /** Trashes every active ad belonging to one client at once - e.g. when
@@ -102,7 +124,6 @@ public class AdvertisementService {
         LocalDateTime now = LocalDateTime.now();
         for (Advertisement ad : ads) {
             ad.setDeletedAt(now);
-            screenAdAssignmentRepository.deleteByAdvertisementId(ad.getId());
         }
         advertisementRepository.saveAll(ads);
         return ads.size();

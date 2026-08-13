@@ -15,5 +15,5 @@ public interface CouponAssignmentRepository extends JpaRepository<CouponAssignme
 
     void deleteByScreenIdAndGameTypeAndCouponId(Long screenId, String gameType, Long couponId);
 
-    void deleteByCouponId(Long couponId);
+    List<CouponAssignment> findByCouponIdIn(List<Long> couponIds);
 }
