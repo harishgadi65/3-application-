@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { screenApi } from '@smartad/api-client';
 
 const STORAGE_KEY = 'smartad_display_code';
@@ -12,8 +13,14 @@ function sanitizeCode(value) {
  * (tab refresh, browser restart), not remembered long-term. Still writes
  * to localStorage after success so in-app navigation within this same
  * page load (e.g. returning to idle once a game session ends) keeps
- * working via LandingPage's own read of that value. */
+ * working via LandingPage's own read of that value.
+ *
+ * /display/:sessionCode is exempt - the session code itself is the
+ * access control there (same principle as mobile-web's join-by-code),
+ * so the admin dashboard's game preview can embed it in an iframe
+ * without also needing the TV setup password. */
 export default function DisplayCodeGate({ children }) {
+  const location = useLocation();
   const [savedCode, setSavedCode] = useState('');
   const [code, setCode] = useState('');
   const [password, setPassword] = useState('');
@@ -44,6 +51,7 @@ export default function DisplayCodeGate({ children }) {
     }
   }
 
+  if (location.pathname.startsWith('/display/')) return children;
   if (savedCode) return children;
 
   return (

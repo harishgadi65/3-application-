@@ -4,16 +4,18 @@ const TOKEN_KEY = 'smartad_token';
 const IDENTITY_KEY = 'smartad_identity';
 const ROLE_KEY = 'smartad_role';
 
-export async function login({ username, password }) {
-  return axiosClient.post('/auth/login', { username, password });
+/** identifier is a mobile number, email, or (legacy) username. */
+export async function login({ identifier, password }) {
+  return axiosClient.post('/auth/login', { identifier, password });
 }
 
-export async function register({ username, email, password, displayName }) {
+export async function register({ displayName, email, mobile, age, password }) {
   return axiosClient.post('/auth/register', {
-    username,
-    email,
-    password,
     displayName,
+    email,
+    mobile,
+    age,
+    password,
   });
 }
 

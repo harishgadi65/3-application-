@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react';
-import { gameApi } from '../lib/api.js';
+import { gameApi, sessionApi } from '../lib/api.js';
 import { useToast } from '@smartad/shared-ui';
 import ConfirmDialog from './ConfirmDialog.jsx';
+import GamePreviewModal from './GamePreviewModal.jsx';
 
 export default function GameList({ games = [], onChanged }) {
   if (games.length === 0) {
@@ -35,6 +36,20 @@ function GameCard({ game, onChanged }) {
   const packageInputRef = useRef(null);
   const [packageFile, setPackageFile] = useState(null);
   const [uploadingPackage, setUploadingPackage] = useState(false);
+  const [previewSession, setPreviewSession] = useState(null);
+  const [startingPreview, setStartingPreview] = useState(false);
+
+  async function handlePreview() {
+    setStartingPreview(true);
+    try {
+      const session = await sessionApi.createSession({ gameType: game.gameType });
+      setPreviewSession(session);
+    } catch (err) {
+      toast(err.message || 'Failed to start a test session', { type: 'error' });
+    } finally {
+      setStartingPreview(false);
+    }
+  }
 
   async function handleDelete() {
     setDeleting(true);
@@ -212,20 +227,34 @@ function GameCard({ game, onChanged }) {
           </div>
         </div>
       ) : (
-        <div className="flex gap-2 border-t border-slate-100 pt-3">
-          <button type="button" className="btn-secondary flex-1" onClick={() => setEditing(true)}>
-            Edit
-          </button>
-          <button
-            type="button"
-            className="btn-danger flex-1"
-            onClick={() => setConfirmingDelete(true)}
-            disabled={deleting}
-          >
-            {deleting ? 'Deleting...' : 'Delete'}
-          </button>
+        <div className="flex flex-col gap-2 border-t border-slate-100 pt-3">
+          {game.playable && (
+            <button
+              type="button"
+              className="btn-primary w-full"
+              onClick={handlePreview}
+              disabled={startingPreview}
+            >
+              {startingPreview ? 'Starting test…' : 'Preview / test on mobile'}
+            </button>
+          )}
+          <div className="flex gap-2">
+            <button type="button" className="btn-secondary flex-1" onClick={() => setEditing(true)}>
+              Edit
+            </button>
+            <button
+              type="button"
+              className="btn-danger flex-1"
+              onClick={() => setConfirmingDelete(true)}
+              disabled={deleting}
+            >
+              {deleting ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
         </div>
       )}
+
+      <GamePreviewModal game={game} session={previewSession} onClose={() => setPreviewSession(null)} />
 
       <ConfirmDialog
         open={confirmingDelete}

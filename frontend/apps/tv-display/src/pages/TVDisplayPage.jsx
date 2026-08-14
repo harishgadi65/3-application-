@@ -199,6 +199,9 @@ export default function TVDisplayPage() {
       RIGHT: session.rightAds || [],
     };
   }, [session]);
+  // Admin-created test/preview sessions have no screen, and therefore no
+  // assigned ads worth showing - keep the preview to just the bare game.
+  const isPreviewSession = Boolean(session) && !session.screenId;
   const displayAdsByPosition = screenAdsByPosition || adsByPosition;
   const fallbackStartupAds = adsByPosition.STARTUP.length
     ? adsByPosition.STARTUP
@@ -245,13 +248,15 @@ export default function TVDisplayPage() {
   }
 
   const isWaiting = !loadError && session && !['COUNTDOWN', 'PLAYING', 'FINISHED'].includes(phase);
-  if (isWaiting && players.length === 0) {
+  if (isWaiting && players.length === 0 && !isPreviewSession) {
     return <StartupDisplay ads={displayStartupAds} code={code} gameType={gameTypeLabel} />;
   }
 
   return (
     <div className="relative h-full w-full">
-      <ScreenLayout adsByPosition={displayAdsByPosition}>{content}</ScreenLayout>
+      <ScreenLayout adsByPosition={displayAdsByPosition} hideAdZones={isPreviewSession}>
+        {content}
+      </ScreenLayout>
       <div className="absolute top-2 left-2 z-50 flex items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold">
         <span className={`h-2 w-2 rounded-full ${connected ? 'bg-emerald-400' : 'bg-red-500 animate-pulse'}`} />
         <span className={connected ? 'text-emerald-300' : 'text-red-300'}>{connected ? 'Live OK' : 'Reconnecting…'}</span>

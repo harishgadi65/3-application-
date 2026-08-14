@@ -23,30 +23,6 @@ export default function GameSelectPage() {
   const [games, setGames] = useState(null);
   const [starting, setStarting] = useState(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    sessionApi
-      .getSession(code)
-      .then(async (session) => {
-        if (cancelled) return;
-        if (session?.screenGames?.length > 0) {
-          setGames(session.screenGames.map((g) => ({ type: g.gameType, label: g.displayName })));
-          return;
-        }
-        // Not started from a screen (e.g. an admin-created session) - offer the full catalog.
-        const catalog = await listGames();
-        if (!cancelled) {
-          setGames((Array.isArray(catalog) ? catalog : []).map((g) => ({ type: g.gameType, label: g.displayName })));
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) toast(err.message || 'Failed to load games for this session', { type: 'error' });
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [code, toast]);
-
   async function chooseGame(gameType) {
     if (starting) return;
     setStarting(gameType);
@@ -61,6 +37,38 @@ export default function GameSelectPage() {
       setStarting(null);
     }
   }
+
+  useEffect(() => {
+    let cancelled = false;
+    sessionApi
+      .getSession(code)
+      .then(async (session) => {
+        if (cancelled) return;
+        if (session?.screenGames?.length > 0) {
+          setGames(session.screenGames.map((g) => ({ type: g.gameType, label: g.displayName })));
+          return;
+        }
+        // Not started from a screen (e.g. an admin preview/test session, which
+        // always targets exactly one gameType) - skip the picker entirely.
+        if (session?.gameType) {
+          // Leave `games` as null so the spinner keeps showing while we
+          // auto-start and navigate away - never render "No games available".
+          await chooseGame(session.gameType);
+          return;
+        }
+        const catalog = await listGames();
+        if (!cancelled) {
+          setGames((Array.isArray(catalog) ? catalog : []).map((g) => ({ type: g.gameType, label: g.displayName })));
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) toast(err.message || 'Failed to load games for this session', { type: 'error' });
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code]);
 
   return (
     <div className="min-h-dvh bg-[#050516] px-5 pb-8 pt-[max(2rem,env(safe-area-inset-top))] font-mono text-[#9bbc0f]">

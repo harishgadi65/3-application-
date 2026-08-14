@@ -35,16 +35,19 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new AuthenticationException("Username is already taken");
+        String mobile = request.getMobile().trim();
+        if (userRepository.existsByMobile(mobile)) {
+            throw new AuthenticationException("This mobile number is already registered. Please sign in instead.");
         }
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new AuthenticationException("Email is already registered");
+            throw new AuthenticationException("This email is already registered. Please sign in instead.");
         }
 
         User user = User.builder()
-                .username(request.getUsername())
+                .username(mobile)
                 .email(request.getEmail())
+                .mobile(mobile)
+                .age(request.getAge())
                 .passwordHash(passwordEncoder.encode(request.getPassword()))
                 .displayName(request.getDisplayName())
                 .build();
@@ -60,11 +63,14 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new AuthenticationException("Invalid username or password"));
+        String identifier = request.getIdentifier().trim();
+        User user = userRepository.findByMobile(identifier)
+                .or(() -> userRepository.findByEmail(identifier))
+                .or(() -> userRepository.findByUsername(identifier))
+                .orElseThrow(() -> new AuthenticationException("Invalid credentials"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new AuthenticationException("Invalid username or password");
+            throw new AuthenticationException("Invalid credentials");
         }
 
         String token = jwtTokenProvider.generateToken(user.getId(), user.getUsername(), Constants.ROLE_USER);
@@ -117,7 +123,7 @@ public class AuthService {
     }
 
     public AuthResponse adminLogin(LoginRequest request) {
-        Admin admin = adminRepository.findByUsername(request.getUsername())
+        Admin admin = adminRepository.findByUsername(request.getIdentifier())
                 .orElseThrow(() -> new AuthenticationException("Invalid username or password"));
 
         if (!passwordEncoder.matches(request.getPassword(), admin.getPasswordHash())) {
