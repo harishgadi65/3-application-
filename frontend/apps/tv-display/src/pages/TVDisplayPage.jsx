@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { sessionApi } from '@smartad/api-client';
 import { useStomp, useSubscription } from '@smartad/websocket';
@@ -26,12 +26,25 @@ export default function TVDisplayPage() {
   const navigate = useNavigate();
   const { client, connected } = useStomp();
   const { adsByPosition } = useAdRotation();
-  const returnToIdle = useCallback(() => navigate('/', { replace: true }), [navigate]);
 
   const [session, setSession] = useState(null);
   const [loadError, setLoadError] = useState(null);
 
   const [phase, setPhase] = useState('WAITING');
+  // A replay (mobile "Play Again") can move this same session straight
+  // back into COUNTDOWN/PLAYING while WinnerScreen's own 30s timer is
+  // still ticking down. Read the latest phase from a ref, not the
+  // closure, so a stale timer never yanks the TV back to idle out from
+  // under an already-restarted game.
+  const phaseRef = useRef(phase);
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+  const returnToIdle = useCallback(() => {
+    if (phaseRef.current === 'FINISHED') {
+      navigate('/', { replace: true });
+    }
+  }, [navigate]);
   const [gameType, setGameType] = useState(null);
   const [players, setPlayers] = useState([]);
   const [countdownSeconds, setCountdownSeconds] = useState(null);
@@ -231,16 +244,32 @@ export default function TVDisplayPage() {
         gameState={gameState}
         rankings={rankings}
         reactionFlashes={reactionFlashes}
+        hideLeaderboard={isPreviewSession}
       />
     );
   } else if (phase === 'FINISHED') {
+    // Admin preview/test sessions have no real screen to "return to idle"
+    // on - just keep showing the final result instead of counting down
+    // into the TV setup gate (see DisplayCodeGate).
     content = (
       <WinnerScreen
         winner={gameEnd?.winner}
         rankings={gameEnd?.rankings || rankings}
         stats={gameEnd?.stats}
-        onComplete={returnToIdle}
+        gameType={gameTypeLabel}
+        onComplete={isPreviewSession ? undefined : returnToIdle}
       />
+    );
+  } else if (isPreviewSession) {
+    // Admin preview/test sessions auto-join and auto-select their one fixed
+    // game within a moment of the modal opening - the "choose a game /
+    // waiting for the host" lobby (built for a real screen with real
+    // players) has nothing meaningful to show here, so just bridge the gap
+    // with a spinner until it moves on to COUNTDOWN.
+    content = (
+      <div className="w-full h-full flex items-center justify-center">
+        <LoadingSpinner />
+      </div>
     );
   } else {
     // CREATED / WAITING / CANCELLED all render as the waiting room.

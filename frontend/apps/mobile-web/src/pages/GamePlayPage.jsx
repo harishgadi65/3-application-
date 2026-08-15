@@ -88,11 +88,11 @@ export default function GamePlayPage() {
     `/topic/session/${code}/game-end`,
     useCallback(
       (msg) => {
-        navigate(`/result/${code}`, { state: { results: msg, playerId } });
+        navigate(`/result/${code}`, { state: { results: msg, playerId, gameType } });
       },
-      [code, navigate, playerId],
+      [code, navigate, playerId, gameType],
     ),
-    [code, playerId],
+    [code, playerId, gameType],
   );
 
   // Only meaningful once playerId is known; before that it subscribes

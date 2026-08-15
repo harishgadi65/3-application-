@@ -51,6 +51,15 @@ function GameCard({ game, onChanged }) {
     }
   }
 
+  async function handleRepeatPreview() {
+    const oldCode = previewSession?.sessionCode;
+    if (oldCode) {
+      await sessionApi.endSession(oldCode).catch(() => {});
+    }
+    const session = await sessionApi.createSession({ gameType: game.gameType });
+    setPreviewSession(session);
+  }
+
   async function handleDelete() {
     setDeleting(true);
     try {
@@ -235,7 +244,7 @@ function GameCard({ game, onChanged }) {
               onClick={handlePreview}
               disabled={startingPreview}
             >
-              {startingPreview ? 'Starting test…' : 'Preview / test on mobile'}
+              {startingPreview ? 'Starting…' : 'Preview'}
             </button>
           )}
           <div className="flex gap-2">
@@ -254,7 +263,12 @@ function GameCard({ game, onChanged }) {
         </div>
       )}
 
-      <GamePreviewModal game={game} session={previewSession} onClose={() => setPreviewSession(null)} />
+      <GamePreviewModal
+        game={game}
+        session={previewSession}
+        onClose={() => setPreviewSession(null)}
+        onRepeat={handleRepeatPreview}
+      />
 
       <ConfirmDialog
         open={confirmingDelete}

@@ -20,6 +20,28 @@ button {
   touch-action: manipulation;
 }
 
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.04);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse-glow {
+    animation: none;
+  }
+}
+
 @layer components {
   .input-field {
     @apply w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3.5 text-base text-white placeholder-slate-500 outline-none focus:border-emerald-500;

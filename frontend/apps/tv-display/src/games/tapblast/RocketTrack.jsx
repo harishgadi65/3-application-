@@ -23,7 +23,7 @@ export default function RocketTrack({ state, flashes = {} }) {
         const flash = flashes[playerId];
 
         return (
-          <div key={playerId} className="flex flex-col items-center flex-1 max-w-[11rem] min-w-[7rem]">
+          <div key={playerId} className="flex flex-col items-center flex-1 max-w-[14rem] min-w-[9rem]">
             <p className="text-2xl font-black text-white mb-1 truncate w-full text-center">
               {rocket.displayName}
             </p>
@@ -44,8 +44,8 @@ export default function RocketTrack({ state, flashes = {} }) {
                 style={{ height: `${progress}%`, backgroundColor: color, opacity: 0.35 }}
               />
               <div
-                className="absolute left-1/2 -translate-x-1/2 text-5xl leading-none transition-[bottom] duration-200 ease-out"
-                style={{ bottom: `calc(${progress}% - 1.25rem)` }}
+                className="absolute left-1/2 -translate-x-1/2 text-7xl leading-none transition-[bottom] duration-200 ease-out"
+                style={{ bottom: `calc(${progress}% - 1.9rem)` }}
               >
                 🚀
               </div>
