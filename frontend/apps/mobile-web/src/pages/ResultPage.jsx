@@ -11,7 +11,12 @@ import { generateSharePoster, shareScorePoster, downloadScorePoster } from '../l
 // Play Again only replays this session directly while the TV is still
 // showing it; afterwards the player needs a fresh code (see handlePlayAgain).
 const REPLAY_WINDOW_MS = 30_000;
-const GAME_LABELS = { SNAKE: 'Snake', TAP_BLAST: 'Tap Blast Race', PLATFORM_DASH: 'Platform Dash' };
+const GAME_LABELS = {
+  SNAKE: 'Snake',
+  TAP_BLAST: 'Tap Blast Race',
+  PLATFORM_DASH: 'Platform Dash',
+  ROCK_PAPER_SCISSORS: 'Rock Paper Scissors',
+};
 
 function storageKey(code) {
   return `smartad_result_${code}`;

@@ -7,12 +7,14 @@ const ICONS = {
   SNAKE: '🐍',
   TAP_BLAST: '🚀',
   PLATFORM_DASH: '🏃',
+  ROCK_PAPER_SCISSORS: '✊',
 };
 
 const DESCRIPTIONS = {
   SNAKE: 'Classic arcade survival',
   TAP_BLAST: 'Fast tapping rocket race',
   PLATFORM_DASH: 'Run, jump, and stomp your way to the flag',
+  ROCK_PAPER_SCISSORS: 'Best of 6 - solo vs the computer or 1v1 with a friend',
 };
 
 export default function GameSelectPage() {
@@ -48,6 +50,16 @@ export default function GameSelectPage() {
           setGames(session.screenGames.map((g) => ({ type: g.gameType, label: g.displayName })));
           return;
         }
+        // Rock Paper Scissors needs a mode choice (solo vs computer, or
+        // wait for a friend) before it starts - never auto-start it.
+        if (session?.gameType === 'ROCK_PAPER_SCISSORS') {
+          navigate(`/rps-mode/${code}`, {
+            replace: true,
+            state: { playerId: location.state?.playerId ?? null },
+          });
+          return;
+        }
+
         // Not started from a screen (e.g. an admin preview/test session, which
         // always targets exactly one gameType) - skip the picker entirely.
         if (session?.gameType) {

@@ -141,6 +141,24 @@ export default function PlatformTrack({ state }) {
                 );
               })}
 
+              {/* Danger-ahead cue: pulses above the very next tile if it's a
+              hazard the runner hasn't jumped for yet - reinforces the same
+              cue now shown on the player's own mini-track. */}
+              {(() => {
+                const nextIndex = runner.position + 1;
+                const nextTile = nextIndex < track.length ? track[nextIndex] : null;
+                const nextIsHazard = nextTile === 'ENEMY' || nextTile === 'PIT';
+                if (!nextIsHazard || jumping || runner.eliminated || runner.finished) return null;
+                return (
+                  <div
+                    className="absolute bottom-16 -translate-x-1/2 animate-pulse text-lg font-black text-red-400"
+                    style={{ left: `${(nextIndex + 0.5) * tileWidthPct}%` }}
+                  >
+                    !
+                  </div>
+                );
+              })()}
+
               {/* Finish flag */}
               <div className="absolute bottom-8 right-2 flex flex-col items-center">
                 <div

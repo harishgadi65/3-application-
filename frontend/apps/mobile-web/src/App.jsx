@@ -10,6 +10,7 @@ import ScanScreenPage from './pages/ScanScreenPage.jsx';
 import PreviewPlayerPage from './pages/PreviewPlayerPage.jsx';
 import GamePlayPage from './pages/GamePlayPage.jsx';
 import GameSelectPage from './pages/GameSelectPage.jsx';
+import RpsModeSelectPage from './pages/RpsModeSelectPage.jsx';
 import ResultPage from './pages/ResultPage.jsx';
 import HistoryPage from './pages/HistoryPage.jsx';
 
@@ -72,6 +73,15 @@ export default function App() {
                 element={
                   <RequireAuth>
                     <GameSelectPage />
+                  </RequireAuth>
+                }
+              />
+
+              <Route
+                path="/rps-mode/:code"
+                element={
+                  <RequireAuth>
+                    <RpsModeSelectPage />
                   </RequireAuth>
                 }
               />

@@ -4,6 +4,7 @@ const GAME_ICONS = {
   SNAKE: '🐍',
   TAP_BLAST: '🚀',
   PLATFORM_DASH: '🏃',
+  ROCK_PAPER_SCISSORS: '✊',
 };
 
 function AdSurface({ ad, className = '' }) {

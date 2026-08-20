@@ -1,6 +1,7 @@
 import SnakeArena from './snake/SnakeArena.jsx';
 import RocketTrack from './tapblast/RocketTrack.jsx';
 import PlatformTrack from './platformdash/PlatformTrack.jsx';
+import RpsArena from './rps/RpsArena.jsx';
 
 /**
  * Dispatches to the correct game view based on gameType. All game logic
@@ -22,6 +23,8 @@ export default function GameRenderer({ gameType, state, reactionFlashes }) {
       return <RocketTrack state={state} flashes={reactionFlashes} />;
     case 'PLATFORM_DASH':
       return <PlatformTrack state={state} />;
+    case 'ROCK_PAPER_SCISSORS':
+      return <RpsArena state={state} />;
     default:
       return (
         <div className="w-full h-full flex items-center justify-center text-3xl text-slate-500 font-semibold">

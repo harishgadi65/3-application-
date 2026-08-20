@@ -2,6 +2,7 @@ const ICONS = {
   SNAKE: '🐍',
   TAP_BLAST: '🚀',
   PLATFORM_DASH: '🏃',
+  ROCK_PAPER_SCISSORS: '✊',
 };
 
 const DEFAULT_GAMES = [

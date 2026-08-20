@@ -16,7 +16,12 @@ const MEDAL_STYLES = {
   3: 'border-amber-700/50 bg-amber-700/10 text-amber-500',
 };
 
-const GAME_LABELS = { SNAKE: 'Snake', TAP_BLAST: 'Tap Blast Race', PLATFORM_DASH: 'Platform Dash' };
+const GAME_LABELS = {
+  SNAKE: 'Snake',
+  TAP_BLAST: 'Tap Blast Race',
+  PLATFORM_DASH: 'Platform Dash',
+  ROCK_PAPER_SCISSORS: 'Rock Paper Scissors',
+};
 
 function humanizeReason(reason) {
   if (!reason) return null;

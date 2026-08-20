@@ -10,6 +10,92 @@ const EVENT_LABEL = {
   FINISH: { text: 'FINISHED!', color: 'text-emerald-400' },
 };
 
+const HURT_EVENTS = new Set(['STUMBLE', 'FELL', 'ELIMINATED']);
+
+// How many tiles behind/ahead of the runner the mini-track window shows.
+// The player is jumping completely blind without this - the track and
+// obstacles only ever existed on the shared TV screen before.
+const LOOKBEHIND = 1;
+const LOOKAHEAD = 6;
+const WINDOW_SIZE = LOOKBEHIND + LOOKAHEAD + 1;
+
+function MiniRunner({ color, jumping, hurt }) {
+  return (
+    <div
+      className={`relative h-7 w-6 transition-transform duration-150 ${jumping ? '-translate-y-3' : ''}`}
+    >
+      <div
+        className={`absolute inset-x-0 top-0 h-5 rounded-t-full rounded-b-sm ${hurt ? 'animate-flash-red' : ''}`}
+        style={{ backgroundColor: color || '#22d3ee' }}
+      />
+      <span className="absolute left-1 top-1 h-1 w-1 rounded-full bg-white" />
+      <span className="absolute right-1 top-1 h-1 w-1 rounded-full bg-white" />
+    </div>
+  );
+}
+
+/**
+ * Live windowed view of the shared track (same `state.track`/`state.runners`
+ * payload the TV screen already renders in full) so the player can actually
+ * see what's coming and time their jump, instead of reacting to a text
+ * label after the fact.
+ */
+function MiniTrack({ track, trackLength, runner }) {
+  const position = runner?.position ?? 0;
+  const visibleStart = Math.max(0, Math.min(position - LOOKBEHIND, Math.max(trackLength - WINDOW_SIZE, 0)));
+  const runnerSlot = position - visibleStart;
+  const jumping = (runner?.jumpTicksRemaining ?? 0) > 0;
+  const hurt = HURT_EVENTS.has(runner?.lastEvent);
+
+  const tiles = Array.from({ length: WINDOW_SIZE }, (_, i) => {
+    const idx = visibleStart + i;
+    return { idx, tile: idx < trackLength ? track[idx] || 'EMPTY' : 'BEYOND' };
+  });
+
+  return (
+    <div className="relative mx-4 mt-3 h-20 overflow-hidden rounded-2xl border-2 border-white/10 shadow-inner">
+      <div className="absolute inset-0 bg-gradient-to-b from-sky-400 via-sky-300/70 to-sky-100/30" />
+      <div className="absolute inset-0 flex">
+        {tiles.map(({ idx, tile }, i) => {
+          const distance = i - runnerSlot;
+          const isHazard = tile === 'ENEMY' || tile === 'PIT';
+          return (
+            <div key={idx} className="relative h-full flex-1 border-r border-white/5">
+              {tile !== 'PIT' && (
+                <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-b from-lime-600 to-lime-800" />
+              )}
+              {idx === trackLength - 1 && (
+                <div className="absolute bottom-8 right-0 -translate-y-full text-lg">🏁</div>
+              )}
+              {tile === 'COIN' && (
+                <div className="absolute bottom-9 left-1/2 h-3.5 w-3.5 -translate-x-1/2 animate-coin-spin rounded-full bg-gradient-to-br from-yellow-300 to-amber-500" />
+              )}
+              {tile === 'ENEMY' && (
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-critter-waddle text-base leading-none">
+                  👾
+                </div>
+              )}
+              {isHazard && distance === 1 && (
+                <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 animate-pulse text-sm font-black text-red-400">
+                  !
+                </div>
+              )}
+              {isHazard && distance === 2 && (
+                <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 text-sm font-black text-amber-300">!</div>
+              )}
+              {i === runnerSlot && !runner?.finished && (
+                <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
+                  <MiniRunner color={runner?.color} jumping={jumping} hurt={hurt} />
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /**
  * One giant full-width/height tap target for PLATFORM_DASH. Publishes a
  * JUMP action on every pointerdown - the backend arms a short jump window
@@ -44,6 +130,8 @@ export default function JumpButton({ onAction, gameUpdateState, playerId }) {
 
   return (
     <div className="flex h-full w-full flex-col">
+      <MiniTrack track={gameUpdateState?.state?.track || []} trackLength={trackLength} runner={runner} />
+
       <div className="px-4 pt-3">
         <div className="h-4 w-full overflow-hidden rounded-full bg-slate-800">
           <div

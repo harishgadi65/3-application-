@@ -61,6 +61,18 @@ export async function replaySession(code) {
   return normalizeSession(session);
 }
 
+/** Rock Paper Scissors only: 'SOLO' starts immediately vs the computer;
+ * 'MULTIPLAYER' just records the choice and waits for a second player. */
+export async function setRpsMode(code, mode) {
+  const session = await axiosClient.post(`/sessions/${code}/rps-mode`, { mode });
+  return normalizeSession(session);
+}
+
+export async function getRpsMode(code) {
+  const result = await axiosClient.get(`/sessions/${code}/rps-mode`);
+  return result?.mode || null;
+}
+
 export async function listPlayers(code) {
   return axiosClient.get(`/sessions/${code}/players`);
 }

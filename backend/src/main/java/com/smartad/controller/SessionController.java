@@ -22,6 +22,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/sessions")
@@ -88,6 +90,23 @@ public class SessionController {
                                                                      @AuthenticationPrincipal Long userId) {
         PlayerResponse response = sessionService.joinSession(code, userId);
         return ResponseEntity.ok(ApiResponse.success("Joined session", response));
+    }
+
+    /** Rock Paper Scissors only: "SOLO" starts immediately against a
+     * computer opponent; "MULTIPLAYER" just records the choice and waits
+     * for a second real player to join this same code. */
+    @PostMapping("/{code}/rps-mode")
+    public ResponseEntity<ApiResponse<SessionResponse>> setRpsMode(@PathVariable String code,
+                                                                    @RequestBody Map<String, String> body,
+                                                                    @AuthenticationPrincipal Long userId) {
+        SessionResponse response = sessionService.setRpsMode(code, userId, body.get("mode"));
+        return ResponseEntity.ok(ApiResponse.success("Mode set", response));
+    }
+
+    @GetMapping("/{code}/rps-mode")
+    public ResponseEntity<ApiResponse<Map<String, String>>> getRpsMode(@PathVariable String code) {
+        return ResponseEntity.ok(ApiResponse.success(Map.of("mode",
+                Objects.requireNonNullElse(sessionService.getRpsMode(code), ""))));
     }
 
     @GetMapping("/{code}/players")

@@ -109,35 +109,19 @@ export default function GameUploader({ onCreated }) {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="label" htmlFor="game-max-players">
-            Max players
-          </label>
-          <input
-            id="game-max-players"
-            type="number"
-            min={1}
-            className="input"
-            value={form.defaultMaxPlayers}
-            onChange={(e) => updateField('defaultMaxPlayers', e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label className="label" htmlFor="game-duration">
-            Duration (seconds)
-          </label>
-          <input
-            id="game-duration"
-            type="number"
-            min={1}
-            className="input"
-            value={form.defaultDurationSeconds}
-            onChange={(e) => updateField('defaultDurationSeconds', e.target.value)}
-            required
-          />
-        </div>
+      <div>
+        <label className="label" htmlFor="game-duration">
+          Duration (seconds)
+        </label>
+        <input
+          id="game-duration"
+          type="number"
+          min={1}
+          className="input"
+          value={form.defaultDurationSeconds}
+          onChange={(e) => updateField('defaultDurationSeconds', e.target.value)}
+          required
+        />
       </div>
 
       <div>

@@ -43,7 +43,11 @@ export default function GamePlayPage() {
     sessionApi
       .joinSession(code)
       .then((result) => {
-        if (!cancelled) setPlayerId(result?.playerId ?? result?.id ?? null);
+        // PlayerResponse carries the account's userId (the id every game's
+        // state/leaderboard is keyed by) as `userId` - `id` is the join
+        // record's own row id, a different number that must never be used
+        // as the player's identity here.
+        if (!cancelled) setPlayerId(result?.userId ?? null);
       })
       .catch(() => {
         // Ignore — the player will just miss the player-scoped

@@ -26,6 +26,7 @@ import com.smartad.util.SessionCodeGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,6 +55,7 @@ public class SessionService {
     private final GameEngineService gameEngineService;
     private final QrCodeService qrCodeService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PasswordEncoder passwordEncoder;
 
     private static final List<SessionStatus> ACTIVE_STATUSES =
             List.of(SessionStatus.WAITING, SessionStatus.COUNTDOWN, SessionStatus.PLAYING);
@@ -124,6 +126,9 @@ public class SessionService {
         if (playerCount < 1) {
             throw new InvalidGameStateException("At least 1 player must join before starting the session");
         }
+        if (session.getGameType() == com.smartad.enums.GameType.ROCK_PAPER_SCISSORS && playerCount < 2) {
+            joinSession(code, ensureComputerBotUser());
+        }
 
         session.setStatus(SessionStatus.COUNTDOWN);
         session = gameSessionRepository.save(session);
@@ -144,6 +149,14 @@ public class SessionService {
         GamePlugin plugin = gamePluginRegistry.getPluginOrThrow(gameType.name());
         session.setGameType(gameType);
         session.setGameDurationSeconds(plugin.getDefaultDuration());
+        if (gameType == com.smartad.enums.GameType.ROCK_PAPER_SCISSORS
+                && playerSessionRepository.countBySession(session) < 2) {
+            // Reached without the mode-choice screen (e.g. an admin
+            // preview/test session, or a real screen with several games
+            // where this was just picked from the catalog) - there's no
+            // second real player, so play solo against the computer.
+            joinSession(code, ensureComputerBotUser());
+        }
         session.setStatus(SessionStatus.COUNTDOWN);
         session = gameSessionRepository.save(session);
         redisSessionStateService.setStateFields(code, Map.of(
@@ -225,6 +238,7 @@ public class SessionService {
         redisSessionStateService.setActiveSession(userId.toString(), code);
 
         broadcastPlayers(session);
+        maybeAutoStartRockPaperScissors(session);
 
         return PlayerResponse.builder()
                 .id(playerSession.getId())
@@ -233,6 +247,94 @@ public class SessionService {
                 .score(0)
                 .status(playerSession.getStatus())
                 .build();
+    }
+
+    /**
+     * Rock Paper Scissors-specific: records whether this match is against
+     * the computer or a second real player, before the match starts.
+     * "SOLO" silently adds a real, reusable bot account as a joined
+     * player and starts the match immediately - the bot then flows through
+     * the ordinary scoring/leaderboard/history pipeline unmodified.
+     * "MULTIPLAYER" just records the mode; the match auto-starts once a
+     * second real player joins with the same code - see
+     * {@link #maybeAutoStartRockPaperScissors}.
+     */
+    @Transactional
+    public SessionResponse setRpsMode(String code, Long userId, String mode) {
+        GameSession session = findSessionOrThrow(code);
+        requireJoinedPlayer(session, userId);
+        if (session.getGameType() != com.smartad.enums.GameType.ROCK_PAPER_SCISSORS) {
+            throw new InvalidGameStateException("Mode selection only applies to Rock Paper Scissors");
+        }
+        if (session.getStatus() != SessionStatus.WAITING) {
+            throw new InvalidGameStateException("Mode can only be chosen while the session is waiting");
+        }
+
+        String normalized = mode == null ? "" : mode.trim().toUpperCase();
+        if (!normalized.equals("SOLO") && !normalized.equals("MULTIPLAYER")) {
+            throw new IllegalArgumentException("mode must be SOLO or MULTIPLAYER");
+        }
+        redisSessionStateService.setStateField(code, "rpsMode", normalized);
+
+        if (normalized.equals("SOLO")) {
+            Long botId = ensureComputerBotUser();
+            joinSession(code, botId);
+            session = findSessionOrThrow(code);
+            beginCountdown(session);
+        }
+
+        return sessionMapper.toSessionResponse(session, (int) playerSessionRepository.countBySession(session));
+    }
+
+    @Transactional(readOnly = true)
+    public String getRpsMode(String code) {
+        return redisSessionStateService.getStateField(code, "rpsMode");
+    }
+
+    /** Once a second real player joins a Rock Paper Scissors session that
+     * was set to "MULTIPLAYER" mode, the match starts on its own - there is
+     * no separate "start" button for a real 1v1 match. */
+    private void maybeAutoStartRockPaperScissors(GameSession session) {
+        if (session.getGameType() != com.smartad.enums.GameType.ROCK_PAPER_SCISSORS
+                || session.getStatus() != SessionStatus.WAITING
+                || !"MULTIPLAYER".equals(redisSessionStateService.getStateField(session.getSessionCode(), "rpsMode"))) {
+            return;
+        }
+        if (playerSessionRepository.countBySession(session) >= 2) {
+            beginCountdown(session);
+        }
+    }
+
+    private void beginCountdown(GameSession session) {
+        session.setStatus(SessionStatus.COUNTDOWN);
+        gameSessionRepository.save(session);
+        redisSessionStateService.setStateFields(session.getSessionCode(), Map.of(
+                "phase", "COUNTDOWN",
+                "gameType", session.getGameType().name()));
+        gameEngineService.beginCountdownAndStart(session.getSessionCode());
+    }
+
+    private static final String RPS_BOT_MOBILE = "rps-computer-bot";
+
+    /** Finds or silently creates the reusable "Computer" bot account used
+     * as the opponent in solo Rock Paper Scissors matches - a real user
+     * row (like the admin preview's "Preview Tester") so it flows through
+     * the normal join/score/leaderboard/history pipeline with no
+     * special-casing anywhere else. */
+    private Long ensureComputerBotUser() {
+        return userRepository.findByMobile(RPS_BOT_MOBILE)
+                .map(User::getId)
+                .orElseGet(() -> {
+                    User bot = User.builder()
+                            .username(RPS_BOT_MOBILE)
+                            .mobile(RPS_BOT_MOBILE)
+                            .email("rps-computer-bot@smartad.local")
+                            .age(1)
+                            .displayName("Computer")
+                            .passwordHash(passwordEncoder.encode(java.util.UUID.randomUUID().toString()))
+                            .build();
+                    return userRepository.save(bot).getId();
+                });
     }
 
     @Transactional(readOnly = true)

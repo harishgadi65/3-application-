@@ -2,6 +2,7 @@ import SnakeController from './snake/SnakeController.jsx';
 import TapButton from './tapblast/TapButton.jsx';
 import ReactionFlash from './tapblast/ReactionFlash.jsx';
 import JumpButton from './platformdash/JumpButton.jsx';
+import RpsPicker from './rps/RpsPicker.jsx';
 
 /**
  * Dynamically swaps in the right on-screen controller for the active
@@ -22,6 +23,9 @@ export default function GameController({ gameType, onAction, gameUpdateState, ga
 
     case 'PLATFORM_DASH':
       return <JumpButton onAction={onAction} gameUpdateState={gameUpdateState} playerId={playerId} />;
+
+    case 'ROCK_PAPER_SCISSORS':
+      return <RpsPicker onAction={onAction} gameUpdateState={gameUpdateState} playerId={playerId} />;
 
     default:
       return (

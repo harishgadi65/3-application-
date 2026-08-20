@@ -8,5 +8,6 @@ package com.smartad.enums;
 public enum GameType {
     SNAKE,
     TAP_BLAST,
-    PLATFORM_DASH
+    PLATFORM_DASH,
+    ROCK_PAPER_SCISSORS
 }

@@ -12,7 +12,18 @@ const TESTER_PROFILE = {
   password: TESTER_PASSWORD,
 };
 
-const GAME_LABELS = { TAP_BLAST: 'TAP BLAST', SNAKE: 'SNAKE', PLATFORM_DASH: 'PLATFORM DASH' };
+const GAME_LABELS = {
+  TAP_BLAST: 'TAP BLAST',
+  SNAKE: 'SNAKE',
+  PLATFORM_DASH: 'PLATFORM DASH',
+  ROCK_PAPER_SCISSORS: 'ROCK PAPER SCISSORS',
+};
+
+const RPS_CHOICES = [
+  { value: 'ROCK', emoji: '🪨' },
+  { value: 'PAPER', emoji: '✋' },
+  { value: 'SCISSORS', emoji: '✂️' },
+];
 
 /**
  * Talks to the backend directly as the same reusable "Preview Tester"
@@ -149,6 +160,20 @@ export default function PreviewGameController({ sessionCode, gameType }) {
           </div>
         ) : gameType === 'PLATFORM_DASH' ? (
           <ControlButton big label="JUMP" disabled={!ready} onClick={() => sendAction('JUMP')} />
+        ) : gameType === 'ROCK_PAPER_SCISSORS' ? (
+          <div className="grid grid-cols-3 gap-3">
+            {RPS_CHOICES.map((choice) => (
+              <button
+                key={choice.value}
+                type="button"
+                disabled={!ready}
+                onClick={() => sendAction('CHOOSE', { choice: choice.value })}
+                className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-b from-orange-400 to-orange-600 text-4xl shadow-lg transition active:scale-95 disabled:opacity-40"
+              >
+                {choice.emoji}
+              </button>
+            ))}
+          </div>
         ) : (
           <ControlButton big label="TAP!" disabled={!ready} onClick={() => sendAction('TAP')} />
         )}

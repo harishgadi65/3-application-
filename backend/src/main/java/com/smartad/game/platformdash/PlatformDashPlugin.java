@@ -34,14 +34,20 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class PlatformDashPlugin implements GamePlugin {
 
-    private static final int TICK_RATE_MS = 150;
+    private static final int TICK_RATE_MS = 220;
     private static final int MAX_PLAYERS = 8;
     private static final int MIN_PLAYERS = 1;
     private static final int DEFAULT_DURATION_SECONDS = 90;
 
-    private static final int TRACK_LENGTH = 26;
-    private static final double ENEMY_PROBABILITY = 0.18;
-    private static final double PIT_PROBABILITY = 0.12;
+    // Longer track + slower tick than the original (150ms/26 tiles = a ~4s
+    // race, over almost before it started). Hazard odds are scaled down to
+    // roughly the original expected hazard COUNT despite the longer track -
+    // now that players can actually see hazards coming (see the mobile
+    // controller's mini-track), the challenge is real reaction/timing
+    // rather than blind luck, so it doesn't need to be denser too.
+    private static final int TRACK_LENGTH = 40;
+    private static final double ENEMY_PROBABILITY = 0.12;
+    private static final double PIT_PROBABILITY = 0.08;
     private static final double COIN_PROBABILITY = 0.25;
     private static final int STUMBLE_TICKS = 4;
     private static final int JUMP_WINDOW_TICKS = 3;
